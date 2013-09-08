@@ -2,25 +2,52 @@
 Instruments
 * GPIB is implemented with linux-gpib kernel modules
 
-by ll2bf
+by Lijun
 """
 
 import gpib
 #import binascii
 import time
-import matplotlib.pyplot as plt
+import sys
+import getopt
 
 ## Helper functions below
 def twoscomplement(int_in, bitsize):
-        """
-        Compute two's complement
-        http://stackoverflow.com/a/1604701/1527875
-        """
-        return int_in- (1<<bitsize)
+    """
+    Compute two's complement
+    http://stackoverflow.com/a/1604701/1527875
+    """
+    return int_in- (1<<bitsize)
         
 def split_string(str_in, stepsize):
+    """
+    Split a string every N charaters and store into an array 
+    """
     str_out = [str_in[ii:ii+stepsize] for ii in range(0, len(str_in), stepsize)]
     return str_out
+    
+
+def write_data_1d(filename, arr1):
+    """
+    Write array to data
+    """
+    file = open(filename, 'w')
+    for ii in range(len(arr1)):
+        file.write('%s\n' % str(arr1[ii]))
+    file.close()
+    
+def write_data_2d(filename, arr1, arr2):
+    """
+    Write array to data
+    """
+    file = open(filename, 'w')
+    for ii in range(len(arr1)):
+        file.write('%s\t%s\n' % (str(arr1[ii]), str(arr2[ii])))
+    file.close()
+    
+def write_data(filename, arr1, **kwargs):
+    pass
+        
 
 ## Instrument classes below
 class ib_dev():
@@ -32,6 +59,7 @@ class ib_dev():
         #gpib.timeout(self.handle, 12)  # timeout T3s = 12; check help(gpib)
         print "GPIB::%d is initialized" % self.port
         print "GPIB handle = %d" % self.handle
+        # Time delay dictionary below
 
         
     def write(self, msg):
@@ -53,7 +81,8 @@ class ib_dev():
 
 class hp3582a(ib_dev):
     """
-    The wordsize of HP3528A memory is 16 bit, or 2 bytes
+    HP 3582A FFT spectrum analyzer
+    The memory wordsize is 16 bit, or 2 bytes
     The HPIB read byte size must match the requested byte size, or there will be errors
     """
     def __init__(self, port=11):
@@ -69,7 +98,7 @@ class hp3582a(ib_dev):
     def get_spectrum(self):
         bytes_per_pt = 9
         pts = 256  # single trace in singla channel mode: 256 points
-        bytes_separator = pts -1
+        bytes_separator = pts -1  # how many '.'s in the string
         self.write('LDS')
         data = self.read(bytes_per_pt*pts + bytes_separator)
         # return an ascii string like '-2.47E+01,-2.52E+01'
@@ -88,19 +117,28 @@ class keithley2400c(ib_dev):
     def initialize(self):
         ib_dev.initialize(self)
         self.write('*RST')
-        self.write(':SENSe:CURRent:NPLCycles 0.1' ) # set integration time
         self.write(':SENSe:AVERage ON')
-        self.write(':SENSe:CURRent:PROTection 1e-1') # current compliance, unit: A
         self.write(':SENSe:FUNCtion:CONCurrent 0')  # disable the ability of measuring more than one function simultaneously      
         self.write(':SOURce:DELay 0.5')        
         self.write(':SOURce:CLEar:AUTO 0')        
         self.write(':DISPLay:ENABle 1')
         self.write(':DISPLay:DIGits 6')
         self.write(':SYSTem:AZERo ON')
-
     
     def get_idn(self):
         return self.query('*IDN?')
+        
+    def set_current(self, I, V_compliance):
+        pass
+    
+    def set_voltage(self, V, I_compliance):
+        pass
+    
+    def on(self):
+        self.write(':OUTPut:STATe ON')
+    
+    def off(self):
+        self.write(':OUTPut:STATe OFF')
         
     def IV_sweep(self, vlist=None, fourwire=False):
         """
@@ -110,6 +148,8 @@ class keithley2400c(ib_dev):
         print vlist_str
         vlist_pts = len(vlist)
         
+        self.write(':SENSe:CURRent:NPLCycles 0.1' ) # set integration time
+        self.write(':SENSe:CURRent:PROTection 1e-1') # current compliance, unit: A
         self.write(':SOURce:VOLTage:MODE LIST')
         self.write(':SOURce:VOLTage:RANGe 50')
         self.write(':SENSe:FUNCtion:ON "CURRent"')
@@ -123,7 +163,7 @@ class keithley2400c(ib_dev):
         
         self.write(':OUTPut:STATe ON')
         self.write(':INITiate')
-        self.write(':FETch?')
+        self.write(':FETCh?')
         # Need to tweak the GPIB timeout to cater for different measurement time
         data_str = self.read(1024)
         self.write(':OUTPut:STATe OFF')
@@ -131,13 +171,7 @@ class keithley2400c(ib_dev):
         data_int = [float(d) for d in data_str.split(',')]
         return data_int
     
-    
 
-if __name__=='__main__':
-    k = keithley2400c(24)
-    k.initialize()
-    print k.IV_sweep([0,0.1,0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
-    k.close()
 
         
         

@@ -11,7 +11,18 @@ import numpy as np
 
     
 if __name__=='__main__':
-    if sys.argv[1] == 'k2400c':
+    if len(sys.argv) == 1:
+        print "No input options!"
+    elif sys.argv[1] == 'k2400c':
+        usage_str = 'Usage: python lfn.py k2400c'
+        args = sys.argv[2:]
+        try:
+            opts, args = getopt.getopt(args, "h", ['help'])
+        except getopt.GetoptError as err:
+            # print help information and exit:
+            print str(err)
+            sys.exit(2)
+        
         k = i9s.keithley2400c(24)
         k.initialize()
         vlist = np.linspace(0, 2, 41)
@@ -24,15 +35,37 @@ if __name__=='__main__':
         plt.savefig('IV.png')
         i9s.write_data_2d('IV.dat', vlist, ilist)
     elif sys.argv[1] == 'hp3582a':
+        usage_str = 'Usage: python lfn.py hp3582a -u 1000'
+        args = sys.argv[2:]
+        try:
+            opts, args = getopt.getopt(args, "hu:", ['help'])
+        except getopt.GetoptError as err:
+            # print help information and exit:
+            print str(err)
+            sys.exit(2)
+        
+        freq_ub = 1000  # default frequency upper bound
+        for o, a in opts:
+            if o in ("-h", "--help"):
+                print usage_str
+                sys.exit()
+            elif o == '-u':
+                freq_ub = int(a)
+        print "Frequency upper bound = %d" % freq_ub
+        
         hp = i9s.hp3582a(11)
         hp.initialize()
         spectrum_data = hp.get_spectrum()
         hp.close()
         
-        plt.semilogx(spectrum_data)
+        # Plotting
+        freq_axis = np.linspace(0, freq_ub, 256)  # 256 points for single trace in single channel mode
+        plt.semilogx(freq_axis, spectrum_data)
+        plt.xlabel('Freuqency (Hz)')
+        plt.ylabel('FFT spectrum (dBV)')
         plt.savefig('FFT_spectrum.png')
-        i9s.write_data_1d('spectrum.dat', spectrum_data)
+        i9s.write_data_2d('fft_spectrum.dat', freq_axis, spectrum_data)
     else:
-        print 'Do nothing'
+        print 'Unrecognized input arguments!'
         
         

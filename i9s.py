@@ -8,8 +8,7 @@ by Lijun
 import gpib
 #import binascii
 import time
-import sys
-import getopt
+
 
 ## Helper functions below
 def twoscomplement(int_in, bitsize):
@@ -29,7 +28,7 @@ def split_string(str_in, stepsize):
 
 def write_data_1d(filename, arr1):
     """
-    Write array to data
+    Write data to 1D array
     """
     file = open(filename, 'w')
     for ii in range(len(arr1)):
@@ -38,7 +37,7 @@ def write_data_1d(filename, arr1):
     
 def write_data_2d(filename, arr1, arr2):
     """
-    Write array to data
+    Write data to 2D array
     """
     file = open(filename, 'w')
     for ii in range(len(arr1)):
@@ -47,7 +46,6 @@ def write_data_2d(filename, arr1, arr2):
     
 def write_data(filename, arr1, **kwargs):
     pass
-        
 
 ## Instrument classes below
 class ib_dev():

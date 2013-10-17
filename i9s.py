@@ -9,6 +9,7 @@ import gpib
 #import binascii
 import time
 import numpy as np
+# import scipy as sp
 
 
 ## Helper functions below
@@ -53,6 +54,15 @@ def write_data_n3(filename, arr1, arr2, arr3):
     for ii in range(len(arr1)):
         file.write('%s\t%s\t%s\n' % (str(arr1[ii]), str(arr2[ii]), str(arr3[ii])))
     file.close()
+
+def iprint(msg, verbose=True):
+    """
+    Add a on/off switch to print: when verbose is False, do nothing; when verbose is True, print as mormal
+    """
+    if verbose:
+        print msg
+    else:
+        pass
 
 ## Instrument classes below
 class ib_dev():
@@ -269,46 +279,79 @@ class sr810(ib_dev):
         i = a + 2 * exponent
         return i
 
-    def sensitivity_mapping(self, sens, source_mode):
+    def sensitivity_mapping(self, sens, source_mode, direction='n2c'):
         """
         Map the numerical sensitivity to the commmand line argument
         Return an int
-        sens: unit A or V, depending on source_mode
+        sens: sensitivity
+              when in 'n2c'(numerical to command line) mode: unit A or V, depending on source_mode
+              when in 'c2n' mode: unitless, just an int
         """
-        # sens*1.01 to avoid the precision problem during the float point operation
-        # e.g., 1/1e-5 results in 99999.99999999999, which makes exponent == 4 and fsdigit == 9 below
-        if source_mode == 'current':
-            # Normalize the value to 1fA
-            val = int(sens*1.01 / 1e-15)
-        elif source_mode == 'voltage':
-            # Normalize the value to 1nV
-            val = int(sens*1.01 / 1e-9)
-              
-        # Now use an alogrithm to get the command line argument
-        
-        # Decompose the number val to fsdigit * 10** exponent
-        exponent = int(np.floor(np.log10(val)))
-        fsdigit = int(val/10**exponent)   # the first significant digit
-        if fsdigit*10**exponent > 10**9 or fsdigit*10**exponent < 2:
-            raise RuntimeError('Sensitivity out of range')
-        
-        if fsdigit == 2: 
-            a = 0
-        elif fsdigit == 5: 
-            a = 1
-        elif fsdigit == 1:
-            a = 2
-            exponent = exponent - 1
-        else:
-            raise RuntimeError('Unrecognized sensitivity')
-        
-        i = a + exponent* 3
-        return i
+        if not (source_mode == 'voltage' or source_mode == 'current'):
+            raise RuntimeError('Invalid source mode: should be either "current" or "voltage"')
+            
+        if direction == 'n2c':
+            # Convert from numerical to command line argument
+            
+            # sens*1.01 to avoid the precision problem during the float point operation
+            # e.g., 1/1e-5 results in 99999.99999999999, which makes exponent == 4 and fsdigit == 9 below
+            if source_mode == 'current':
+                # Normalize the value to 1fA
+                val = int(sens*1.01 / 1e-15)
+            elif source_mode == 'voltage':
+                # Normalize the value to 1nV
+                val = int(sens*1.01 / 1e-9)
+                  
+            # Now use an alogrithm to get the command line argument
+            
+            # Decompose the number val to fsdigit * 10** exponent
+            exponent = int(np.floor(np.log10(val)))
+            fsdigit = int(val/10**exponent)   # the first significant digit
+            if fsdigit*10**exponent > 10**9 or fsdigit*10**exponent < 2:
+                raise RuntimeError('Sensitivity out of range')
+            
+            if fsdigit == 2: 
+                a = 0
+            elif fsdigit == 5: 
+                a = 1
+            elif fsdigit == 1:
+                a = 2
+                exponent = exponent - 1
+            else:
+                raise RuntimeError('Unrecognized sensitivity')
+            
+            i = a + exponent* 3
+            return i
+            
+        elif direction == 'c2n':
+            # Convert from command line argument to numerical (unit: A or V)
+            sens = int(sens)
+            if sens <0 or sens > 26: 
+                raise RuntimeError('Sensitivity out of range')
+            
+            # Do the reverse of "n2c" algorithm
+            exponent = sens / 3
+            a = sens % 3
+            if a == 0:
+                fsdigit = 2
+            elif a == 1: 
+                fsdigit = 5
+            elif a == 2: 
+                fsdigit = 1
+                exponent = exponent + 1
+            
+            val = fsdigit * 10**exponent
+            if source_mode == 'current':
+                val = val/1e15
+            elif source_mode == 'voltage':
+                val = val/1e9
+            
+            return val 
         
     ## End of helper functions
     #############################
     
-    # Now begin utility functions
+    # Now begin instrument operation functions
     
     def set_reference_source(self, ref_src):
         # SR810 sets reference source to external by default
@@ -352,12 +395,26 @@ class sr810(ib_dev):
     def set_sensitivity(self, sens, source_mode):
         # sens: unit A or V
         # source_mode: 'current' or 'voltage'
-        i = self.sensitivity_mapping(sens, source_mode)
+        i = self.sensitivity_mapping(sens, source_mode, 'n2c')
+        self.write('SENS%d' % i)
+        print 'Sensitivity set to %e' % sens
+    
+    def get_sensitivity(self, source_mode):
+        i = int(self.query('SENS?'))
+        return self.sensitivity_mapping(i, source_mode, 'c2n')
+
+    def set_sensitivity_c(self, i):
+        """
+        Set sensitivity with the command line argument rather than the real numerical value
+        """
         self.write('SENS%d' % i)
     
-    def get_sensitivity(self):
-        i = int(self.query('SENS?'))
-        return i
+    def get_sensitivity_c(self):
+        """
+        Get the command line argument of sensitivity rather than the real numerical value
+        Return an int 
+        """
+        return int(self.query('SENS?'))
         
     def set_time_constant(self, tc):
         i = self.time_constant_mapping(tc)
@@ -479,4 +536,24 @@ class sr810(ib_dev):
             self.write('AOFF3')
         else: 
             raise RuntimeError('Unrecognized auto functions')
+    
+    # Here are some utility functions useful in real measurements
+    
         
+    def poll_ch1(self, pts, time_step, verbose=True):
+        """
+        This function reads some number of CH1 data points with certain time intervals 
+        under the current measurement condition, and calculate the mean and deviation
+        
+        Input args: 
+            pts: number of CH1 data points, int type
+            time_step: time interval between two adjacent sampling, float type, unit: s
+        Return: (mean, standard_deviation)
+        """
+        ch1_data = np.zeros((int(pts), 1))
+        for ii in range(len(ch1_data)):
+            ch1_data[ii] = self.get_ch1()
+            iprint("CH1 = %e" % ch1_data[ii], verbose)
+            time.sleep(time_step)
+        iprint("Summary: %d points, mean = %e, std = %e" % (pts, ch1_data.mean(), ch1_data.std()), verbose)
+        return ch1_data.mean(), ch1_data.std()

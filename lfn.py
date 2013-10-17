@@ -81,13 +81,75 @@ if __name__=='__main__':
     elif sys.argv[1] == 'sr810':
         sr = i9s.sr810(10)
         sr.initialize()
+        sr.set_input_source('I1')
+        sr.set_display_mode('xn')  # measure noise
+        sr.set_time_constant(300e-3)
         
-        for ii in range(10):
-            time.sleep(0.5)
-            print sr.get_ch1()
+        freq_lb = 4    # Frequency lower bound
+        freq_ub = 100  # Frequency upper bound
+        pts = 10       # number of data points along frequency axis
         
+        # Sample in logspace
+        freq_list = np.logspace(np.log10(freq_lb), np.log10(freq_ub), pts)
+        # Need to notch out the 60Hz harmonics points
+        
+        xn_list = np.zeros((len(freq_list), 1))
+        
+        for ii in range(len(freq_list)):
+            sr.set_frequency(freq_list[ii])
+            print "Setting frequency to %0.1f" % freq_list[ii]
+            if ii == 0: 
+                # Since this is a 1/f measurement, I assume that the noise in lower frequency 
+                # is higher than that in higher frequency. So only h
+                sr.exec_auto('gain')
+                time.sleep(5)
+            time.sleep(2)
+            sr.exec_auto('reserve')
+            
+            # Now enter a sensitivity adjustment loop till the output stablizes in some level
+            poll_pts = 10
+            poll_step = 1
+            mean_over_sens_threshold = 0.1
+            std_over_mean_threshold = 0.02
+            # The above four parameters are for the 300ms time constant setting
+            
+            # Initialize
+            mean, std = sr.poll_ch1(poll_pts, poll_step)
+            sens = sr.get_sensitivity('current')
+            
+            while (1):
+                if mean/sens < mean_over_sens_threshold:
+                    # Value too small
+                    i = sr.get_sensitivity_c()
+                    if i == 0: 
+                        print "Sensitivity limit reached"
+                    else: 
+                        # Enhance the sensitivity to the next level
+                        # (Or reduce the range to the next level)
+                        sr.set_sensitivity_c(i-1)
+                        time.sleep(3)
+                        sr.exec_auto('reserve')
+                        mean, std = sr.poll_ch1(poll_pts, poll_step)
+                        sens = sr.get_sensitivity('current')
+                        
+                elif std/mean > std_over_mean_threshold:
+                    # Data not stable enough
+                    # Continue the poll    
+                    mean, std = sr.poll_ch1(poll_pts, poll_step)
+                    sens = sr.get_sensitivity('current')
+                    
+                else:
+                    xn_list[ii] = mean
+                    break
+                print 'mean/sens = %f'  % (mean/sens) 
+                print 'std/mean = %f'  % (std/mean)
+            
+            print 'Frequency = %.2f Hz, Xn = %e' % (freq_list[ii], xn_list[ii])
+            
         sr.close()
         
+        # Saveing and plotting
+        i9s.write_data_n2('Xn.dat', freq_list, xn_list)
     else:
         print 'Unrecognized input arguments!'
         

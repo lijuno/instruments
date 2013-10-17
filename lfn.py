@@ -25,7 +25,7 @@ if __name__=='__main__':
         
         k = i9s.keithley2400c(24)
         k.initialize()
-        vlist = np.linspace(0, 2, 41)
+        vlist = np.linspace(0.4, 1, 41)
         ilist = k.IV_sweep(vlist, fourwire=False)
         print ilist
         k.close()
@@ -33,7 +33,7 @@ if __name__=='__main__':
         plt.xlabel('Voltage (V)')
         plt.ylabel('Current (A)')
         plt.savefig('IV.png')
-        i9s.write_data_2d('IV.dat', vlist, ilist)
+        i9s.write_data_n2('IV.dat', vlist, ilist)
     elif sys.argv[1] == 'hp3582a':
         usage_str = 'Usage: python lfn.py hp3582a -u 1000'
         args = sys.argv[2:]
@@ -51,20 +51,26 @@ if __name__=='__main__':
                 sys.exit()
             elif o == '-u':
                 freq_ub = int(a)
-        print "Frequency upper bound = %d" % freq_ub
+        print "Frequency upper bound = %d Hz" % freq_ub
         
         hp = i9s.hp3582a(11)
         hp.initialize()
-        spectrum_data = hp.get_spectrum()
+        spectrum_data = hp.get_spectrum()  # in dB
         hp.close()
         
         # Plotting
+        # First find the resolution bandwidth by scaling it against 1kHz
+        # At frequency upper bound == 1kHz, the integration bandwidth == 4Hz
+        
+        res_bw = freq_ub/1e3 * 4
         freq_axis = np.linspace(0, freq_ub, 256)  # 256 points for single trace in single channel mode
-        plt.semilogx(freq_axis, spectrum_data)
+        y_power = 10**(np.array(spectrum_data)/10)  # unit: V^2
+        y_power_density = y_power / res_bw
+        plt.loglog(freq_axis, y_power)
         plt.xlabel('Freuqency (Hz)')
-        plt.ylabel('FFT spectrum (dBV)')
+        plt.ylabel('FFT spectrum (V^2)')
         plt.savefig('FFT_spectrum.png')
-        i9s.write_data_2d('fft_spectrum.dat', freq_axis, spectrum_data)
+        i9s.write_data_n3('fft_spectrum.dat', freq_axis, y_power, y_power_density)
     else:
         print 'Unrecognized input arguments!'
         

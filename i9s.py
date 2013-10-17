@@ -8,6 +8,7 @@ by Lijun
 import gpib
 #import binascii
 import time
+import numpy as np
 
 
 ## Helper functions below
@@ -123,6 +124,7 @@ class keithley2400c(ib_dev):
     Keithley 2400C sourcemeter
     """
     def __init__(self, port):
+        print "Keithley 2400C sourcemeter"
         ib_dev.__init__(self, port)
     
     def initialize(self):
@@ -193,6 +195,7 @@ class hp3314a(ib_dev):
         To change HP-IB address, press Rcl (Recall) and then Lcl --> uss knob to change the 
         port number --> press Sto (Store) and then Lcl 
         """
+        print "HP3314A function generator"
         ib_dev.__init__(self, port)
         
     def initialize(self):
@@ -219,6 +222,261 @@ class hp3314a(ib_dev):
         elif freq >= 1e6:
             self.write('FR%0.2fMZ' % (freq/1e6))
             
-
+class sr810(ib_dev):
+    """
+    SR810 DSP lock-in amplifier
+    """
+    def __init__(self, port=10):
+        print "SR810 DSP lock-in amplifier"
+        ib_dev.__init__(self, port)
     
+    def initialize(self):
+        ib_dev.initialize(self)
+        
+        # Set the SR810 to output responses to the GPIB port
+        # The OUTX i command MUST be at the start of ANY SR810 program to direct responses to the interface in use
+        self.write('OUTX1') 
+    
+    ########################
+    ## Helper functions
+    def time_constant_mapping(self, tc):
+        """
+        Map the numerical time constant to the commmand line argument
+        Return an int
+        tc: unit s
+        """
+      
+        # Normalize the time constant to 10us
+        # tc*1.01 to avoid the precision problem during the float point operation
+        # e.g., 1/1e-5 results in 99999.99999999999, which makes exponent == 4 and fsdigit == 9 below
+        val = int(tc*1.01 / 1e-5) 
+        
+        # Now use an alogrithm to get the command line argument
+        
+        # Decompose the number val to fsdigit * 10** exponent
+        exponent = int(np.floor(np.log10(val)))
+        fsdigit = int(val/10**exponent)   # the first significant digit
+        if fsdigit*10**exponent < 1 or fsdigit*10**exponent > 3*10**8:
+            raise RuntimeError('Time constant out of range')
+        
+        if fsdigit == 1: 
+            a = 0
+        elif fsdigit == 3: 
+            a = 1
+        else: 
+            raise RuntimeError('Unrecognized time constant')
+        
+        i = a + 2 * exponent
+        return i
+
+    def sensitivity_mapping(self, sens, source_mode):
+        """
+        Map the numerical sensitivity to the commmand line argument
+        Return an int
+        sens: unit A or V, depending on source_mode
+        """
+        # sens*1.01 to avoid the precision problem during the float point operation
+        # e.g., 1/1e-5 results in 99999.99999999999, which makes exponent == 4 and fsdigit == 9 below
+        if source_mode == 'current':
+            # Normalize the value to 1fA
+            val = int(sens*1.01 / 1e-15)
+        elif source_mode == 'voltage':
+            # Normalize the value to 1nV
+            val = int(sens*1.01 / 1e-9)
+              
+        # Now use an alogrithm to get the command line argument
+        
+        # Decompose the number val to fsdigit * 10** exponent
+        exponent = int(np.floor(np.log10(val)))
+        fsdigit = int(val/10**exponent)   # the first significant digit
+        if fsdigit*10**exponent > 10**9 or fsdigit*10**exponent < 2:
+            raise RuntimeError('Sensitivity out of range')
+        
+        if fsdigit == 2: 
+            a = 0
+        elif fsdigit == 5: 
+            a = 1
+        elif fsdigit == 1:
+            a = 2
+            exponent = exponent - 1
+        else:
+            raise RuntimeError('Unrecognized sensitivity')
+        
+        i = a + exponent* 3
+        return i
+        
+    ## End of helper functions
+    #############################
+    
+    # Now begin utility functions
+    
+    def set_reference_source(self, ref_src):
+        # SR810 sets reference source to external by default
+        if ref_src == 'external':
+            self.write('FMOD0')
+        elif ref_src == 'internal':
+            self.write('FMOD1')
+        else:
+            raise RuntimeError('Unrecognized reference source string')
+    
+    def get_reference_source(self):
+        return int(self.query('FMOD?'))
+    
+    def set_input_source(self, input_src):
+        if input_src == 'A' or input_src == 0:
+            # Single ended voltage input
+            self.write('ISRC0')
+        elif input_src == 'AB' or input_src == 1:
+            # Differential voltage input
+            self.write('ISRC1')
+        elif input_src == 'I1' or input_src == 2:
+            # Current input, 1M Ohm
+            self.write('ISRC2')
+        elif input_src == 'I2' or input_src == 3:
+            # Current input, 100M Ohm
+            self.write('ISRC3')
+        else:
+            raise RuntimeError('Unrecognized input source')
+            
+        
+    def set_frequency(self, freq):
+        # Frequency unit: Hz
+        if self.get_reference_source() == 0: 
+            print "External reference source; Frequency not changeabled"
+        else:
+            self.write('FREQ%.2f' % freq) 
+    
+    def get_frequency(self):
+        return float(self.query('FREQ?'))
+    
+    def set_sensitivity(self, sens, source_mode):
+        # sens: unit A or V
+        # source_mode: 'current' or 'voltage'
+        i = self.sensitivity_mapping(sens, source_mode)
+        self.write('SENS%d' % i)
+    
+    def get_sensitivity(self):
+        i = int(self.query('SENS?'))
+        return i
+        
+    def set_time_constant(self, tc):
+        i = self.time_constant_mapping(tc)
+        self.write('OFLT%d' % i)
+    
+    def get_time_constant(self):
+        return int(self.query('OFLT?'))
+    
+    def set_filter_order(self, order=4):
+        if order == 1:
+            i = 0  # 6 dB/oct
+        elif order == 2:
+            i = 1  # 12 dB/oct
+        elif order == 3:
+            i = 2   # 18 dB/oct
+        elif order == 4: 
+            i = 3   # 24 dB/oct
+        else: 
+            raise RuntimeError('Unrecognized filter order')
+        
+        self.write('OFSL%d' % i)
+    
+    
+    def set_reserve(self, rsv_mode):
+        if rsv_mode == 'high' or rsv_mode == 0:
+            # High reserve
+            self.write('RMOD0')
+        elif rsv_mode == 'normal' or rsv_mode == 1:
+            # normal
+            self.write('RMOD1')
+        elif rsv_mode == 'low' or rsv_mode == 2:
+            # Low noise
+            self.write('RMOD2')
+        else:
+            raise RuntimeError('Unrecognized reserve mode')
+    
+    def get_reserve(self):
+        return int(self.query('RMOD?'))
+    
+    def set_sync_filter(self, sf_status):
+        if sf_status == 'on' or sf_status == 1: 
+            self.write('SYNC1')
+        elif sf_status == 'off' or sf_status == 0: 
+            self.write('SYNC0')
+        else: 
+            raise RuntimeError('Unrecognized sync filter status')
+    
+    def set_coupling_mode(self, coupling_mode):
+        if coupling_mode == 'ac':
+            self.write('ICPL0')
+        elif coupling_mode == 'dc':
+            self.write('ICPL1')
+        else: 
+            raise RuntimeError('Unrecognized coupling mode')
+    
+    def set_grounding_mode(self, grounding_mode):
+        if grounding_mode == 'float' or grounding_mode == 0:
+            self.write('IGND0')
+        elif grounding_mode == 'ground' or grounding_mode == 1:
+            self.write('IGND1')
+        else: 
+            raise RuntimeError('Unrecognized grounding mode')
+    
+    def set_display_mode(self, ch1, ratio='none'):
+        if ch1 == 'x':
+            ch1_mode = 0
+        elif ch1 == 'r':
+            ch1_mode = 1
+        elif ch1 == 'xn':
+            ch1_mode = 2
+        elif ch1 == 'aux1': 
+            ch1_mode = 3
+        elif ch1 == 'aux2':
+            ch1_mode = 4
+        else: 
+            raise RuntimeError('Unrecognized CH1')
+        
+        if ratio == 'none':
+            ratio_mode = 0
+        elif ratio == 'aux1':
+            ratio_mode = 1
+        elif ratio == 'aux2':
+            ratio_mode = 2
+        else: 
+            raise RuntimeError('Unrecognized ratio')
+        
+        self.write('DDEF%d,%d' % (ch1_mode, ratio_mode))
+    def get_ch1(self):
+        """
+        Get CH1 display number
+        Return a float 
+        """
+        return float(self.query('OUTR?'))
+    
+    def exec_auto(self, auto_option):
+        if auto_option == 'gain':
+            # Auto gain
+            print "Executing auto gain ..."
+            self.write('AGAN') 
+        elif auto_option == 'reserve':
+            # Auto reserve
+            print "Executing auto reserve ..."
+            self.write('ARSV')
+        elif auto_option == 'phase':
+            # Auto phase
+            print "Executing auto phase ..."
+            self.write('APHS')
+        elif auto_option == 'offsetx':
+            # Auto offset X
+            print "Executing auto offset on X ..."
+            self.write('AOFF1')
+        elif auto_option == 'offsety':
+            # Auto offset Y
+            print "Executing auto offset on Y ..."
+            self.write('AOFF2')
+        elif auto_option == 'offsetr':
+            # Auto offset R
+            print "Executing auto offset on R ..."
+            self.write('AOFF3')
+        else: 
+            raise RuntimeError('Unrecognized auto functions')
         

@@ -6,6 +6,7 @@ Test script for low-frequency noise experiment
 import i9s 
 import sys
 import getopt
+import time
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -14,6 +15,8 @@ if __name__=='__main__':
     if len(sys.argv) == 1:
         print "No input options!"
     elif sys.argv[1] == 'k2400c':
+        # IV sweep with Keithley 2400C
+        
         usage_str = 'Usage: python lfn.py k2400c'
         args = sys.argv[2:]
         try:
@@ -34,7 +37,11 @@ if __name__=='__main__':
         plt.ylabel('Current (A)')
         plt.savefig('IV.png')
         i9s.write_data_n2('IV.dat', vlist, ilist)
+        
     elif sys.argv[1] == 'hp3582a':
+        # Read the FFT trace from HP3582A 
+        # Input argument "-u" sets the upper limit frequency 
+        
         usage_str = 'Usage: python lfn.py hp3582a -u 1000'
         args = sys.argv[2:]
         try:
@@ -61,7 +68,6 @@ if __name__=='__main__':
         # Plotting
         # First find the resolution bandwidth by scaling it against 1kHz
         # At frequency upper bound == 1kHz, the integration bandwidth == 4Hz
-        
         res_bw = freq_ub/1e3 * 4
         freq_axis = np.linspace(0, freq_ub, 256)  # 256 points for single trace in single channel mode
         y_power = 10**(np.array(spectrum_data)/10)  # unit: V^2
@@ -71,6 +77,17 @@ if __name__=='__main__':
         plt.ylabel('FFT spectrum (V^2)')
         plt.savefig('FFT_spectrum.png')
         i9s.write_data_n3('fft_spectrum.dat', freq_axis, y_power, y_power_density)
+    
+    elif sys.argv[1] == 'sr810':
+        sr = i9s.sr810(10)
+        sr.initialize()
+        
+        for ii in range(10):
+            time.sleep(0.5)
+            print sr.get_ch1()
+        
+        sr.close()
+        
     else:
         print 'Unrecognized input arguments!'
         

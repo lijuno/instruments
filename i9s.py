@@ -55,12 +55,17 @@ def write_data_n3(filename, arr1, arr2, arr3):
         f.write('%s\t%s\t%s\n' % (str(arr1[ii]), str(arr2[ii]), str(arr3[ii])))
     f.close()
 
-def append_to_file_n2(filename, x1, x2):
+def append_to_file_n2(filename, x1, x2, str_format):
     """
     Write to file in append mode; will not overwrite existing content
     """
     f = open(filename, 'a')
-    f.write('%s\t%s\n' % (str(x1), str(x2)))
+    if str_format == 'fe':
+        f.write('%f\t%e\n' % (x1, x2))
+    elif str_format == 'ff':
+        f.write('%f\t%f\n' % (x1, x2))
+    elif str_format == 'ss':
+        f.write('%s\t%s\n' % (x1, x2))
     f.close()
 
 def iprint(msg, verbose=True):

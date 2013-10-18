@@ -86,9 +86,9 @@ if __name__=='__main__':
         sr.set_time_constant(300e-3)
         
         freq_lb = 4    # Frequency lower bound
-        freq_ub = 1000  # Frequency upper bound
-        pts = 5       # number of data points along frequency axis
-        verbose_mode = False
+        freq_ub = 5000  # Frequency upper bound
+        pts = 100       # number of data points along frequency axis
+        verbose_mode = True
         # Sample in logspace
         freq_list = np.logspace(np.log10(freq_lb), np.log10(freq_ub), pts)
         # Need to notch out the 60Hz harmonics points
@@ -100,11 +100,7 @@ if __name__=='__main__':
         for ii in range(len(freq_list)):
             sr.set_frequency(freq_list[ii])
             print "Setting frequency to %0.2f" % freq_list[ii]
-#            if ii == 0: 
-#                # Since this is a 1/f measurement, I assume that the noise in lower frequency 
-#                # is higher than that in higher frequency. So only h
-#                sr.exec_auto('gain')
-#                time.sleep(5)
+            time.sleep(2)
             sr.exec_auto('gain')
             time.sleep(5)
             sr.exec_auto('reserve')
@@ -112,8 +108,8 @@ if __name__=='__main__':
             # Now enter a sensitivity adjustment loop till the output stablizes in some level
             poll_pts = 12
             poll_step = 1
-            mean_over_sens_threshold = 0.2
-            std_over_sens_threshold = 0.02
+            mean_over_sens_threshold = 0.15
+            std_over_sens_threshold = 0.015
             # The above four parameters are for the 300ms time constant setting
             
             # Initialize
@@ -148,20 +144,21 @@ if __name__=='__main__':
                     sens = sr.get_sensitivity('current')
                     
                 else:
-                    if sr.get_overload_status('output'):
-                        print 'Output overload detected! Increase the range'
-                        sr.sensitivity_change(1)   # Increase the range by 1 level
-                        mean, std = sr.poll_ch1(poll_pts, poll_step, verbose_mode)
-                        sens = sr.get_sensitivity('current')
-                    else: 
-                        xn_list[ii] = mean
+#                    time.sleep(2)
+#                    if sr.get_overload_status('output'):
+#                        print 'Output overload detected! Increase the range'
+#                        sr.sensitivity_change(1)   # Increase the range by 1 level
+#                        mean, std = sr.poll_ch1(poll_pts, poll_step, verbose_mode)
+#                        sens = sr.get_sensitivity('current')
+#                    else: 
+                    xn_list[ii] = mean
                     break
                 i9s.iprint('mean/sens = %f'  % (mean/sens), verbose_mode)
                 i9s.iprint('std/sens = %f'  % (std/sens), verbose_mode)
             
             tstop2 = time.time()            
             print 'Frequency = %.2f Hz, elapsed time = %.2f s, Xn = %e' % (freq_list[ii], tstop2-tstart2, xn_list[ii])
-            i9s.append_to_file_n2(filename, freq_list[ii], xn_list[ii])
+            i9s.append_to_file_n2(filename, freq_list[ii], xn_list[ii], 'fe')
         sr.close()
         tstop1 = time.time()
         print 'Total elapsed time = %.2f' % (tstop1 - tstart1)

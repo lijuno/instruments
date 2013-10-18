@@ -93,7 +93,7 @@ if __name__=='__main__':
         freq_list = np.logspace(np.log10(freq_lb), np.log10(freq_ub), pts)
         # Need to notch out the 60Hz harmonics points
         
-        xn_list = np.zeros((len(freq_list), 1))
+        xn_list = np.zeros(len(freq_list))
         
         for ii in range(len(freq_list)):
             sr.set_frequency(freq_list[ii])
@@ -107,16 +107,17 @@ if __name__=='__main__':
             sr.exec_auto('reserve')
             
             # Now enter a sensitivity adjustment loop till the output stablizes in some level
-            poll_pts = 10
+            poll_pts = 15
             poll_step = 1
             mean_over_sens_threshold = 0.1
-            std_over_mean_threshold = 0.02
+            std_over_sens_threshold = 0.01
             # The above four parameters are for the 300ms time constant setting
             
             # Initialize
             mean, std = sr.poll_ch1(poll_pts, poll_step)
             sens = sr.get_sensitivity('current')
             
+            tstart = time.time()
             while (1):
                 if mean/sens < mean_over_sens_threshold:
                     # Value too small
@@ -132,7 +133,7 @@ if __name__=='__main__':
                         mean, std = sr.poll_ch1(poll_pts, poll_step)
                         sens = sr.get_sensitivity('current')
                         
-                elif std/mean > std_over_mean_threshold:
+                elif std/sens > std_over_sens_threshold:
                     # Data not stable enough
                     # Continue the poll    
                     mean, std = sr.poll_ch1(poll_pts, poll_step)
@@ -144,12 +145,14 @@ if __name__=='__main__':
                 print 'mean/sens = %f'  % (mean/sens) 
                 print 'std/mean = %f'  % (std/mean)
             
-            print 'Frequency = %.2f Hz, Xn = %e' % (freq_list[ii], xn_list[ii])
+            tstop = time.time()            
+            print 'Frequency = %.2f Hz, elapsed time = %.2f s, Xn = %e' % (freq_list[ii], tstop-tstart, xn_list[ii])
             
         sr.close()
         
         # Saveing and plotting
         i9s.write_data_n2('Xn.dat', freq_list, xn_list)
+        
     else:
         print 'Unrecognized input arguments!'
         

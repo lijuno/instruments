@@ -32,28 +32,36 @@ def write_data_n1(filename, arr1):
     """
     Write data to N-by-1 array
     """
-    file = open(filename, 'w')
+    f = open(filename, 'w')
     for ii in range(len(arr1)):
-        file.write('%s\n' % str(arr1[ii]))
-    file.close()
+        f.write('%s\n' % str(arr1[ii]))
+    f.close()
     
 def write_data_n2(filename, arr1, arr2):
     """
     Write data to N-by-2 array
     """
-    file = open(filename, 'w')
+    f = open(filename, 'w')
     for ii in range(len(arr1)):
-        file.write('%s\t%s\n' % (str(arr1[ii]), str(arr2[ii])))
-    file.close()
+        f.write('%s\t%s\n' % (str(arr1[ii]), str(arr2[ii])))
+    f.close()
    
 def write_data_n3(filename, arr1, arr2, arr3):
     """
     Write data to N-by-3 array
     """
-    file = open(filename, 'w')
+    f = open(filename, 'w')
     for ii in range(len(arr1)):
-        file.write('%s\t%s\t%s\n' % (str(arr1[ii]), str(arr2[ii]), str(arr3[ii])))
-    file.close()
+        f.write('%s\t%s\t%s\n' % (str(arr1[ii]), str(arr2[ii]), str(arr3[ii])))
+    f.close()
+
+def append_to_file_n2(filename, x1, x2):
+    """
+    Write to file in append mode; will not overwrite existing content
+    """
+    f = open(filename, 'a')
+    f.write('%s\t%s\n' % (str(x1), str(x2)))
+    f.close()
 
 def iprint(msg, verbose=True):
     """
@@ -508,7 +516,26 @@ class sr810(ib_dev):
         Return a float 
         """
         return float(self.query('OUTR?'))
-    
+
+    def get_overload_status(self, info_type):
+        """
+        Query overload status 
+        Return a Boolean
+        """
+        if info_type == 'input':
+            bit = 0
+        elif info_type == 'output':
+            bit = 2
+        elif info_type == 'filter':
+            bit = 1
+        else: 
+            raise RuntimeError('Unrecognized status type')          
+        ovl = int(self.query('LIAS?%d' % bit))
+        if ovl: 
+            return True
+        else:
+            return False
+                
     def exec_auto(self, auto_option):
         if auto_option == 'gain':
             # Auto gain
@@ -557,3 +584,22 @@ class sr810(ib_dev):
             time.sleep(time_step)
         iprint("Summary: %d points, mean = %e, std = %e" % (pts, ch1_data.mean(), ch1_data.std()), verbose)
         return ch1_data.mean(), ch1_data.std()
+    
+    def sensitivity_change(self, n):
+        """
+        Change the sensitivity up or down by n levels. There are 27 levels specified in
+        the SR810 manual page 5-6. 
+        Positive n means less sensitive; negative n means more sensitive. 
+        Auto reserve is executed after the change. 
+        """
+        if not (type(n) is int):
+            raise RuntimeError('Input n must be int type')
+            
+        i1 = self.get_sensitivity_c()   # current sensitivity
+        i2 = i1 + n
+        if i2 > 26 or i2 <0:
+            raise RuntimeError('Final sensitivity out of range. Make |n| smaller')
+        
+        self.set_sensitivity_c(i2)
+        time.sleep(3)
+        self.exec_auto('reserve')

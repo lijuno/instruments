@@ -6,78 +6,13 @@ by Lijun
 """
 
 import gpib
+import utilib as ut
 #import binascii
 import time
 import numpy as np
 # import scipy as sp
 
 
-## Helper functions below
-def twoscomplement(int_in, bitsize):
-    """
-    Compute two's complement
-    http://stackoverflow.com/a/1604701/1527875
-    """
-    return int_in- (1<<bitsize)
-        
-def split_string(str_in, stepsize):
-    """
-    Split a string every N charaters and store into an array 
-    """
-    str_out = [str_in[ii:ii+stepsize] for ii in range(0, len(str_in), stepsize)]
-    return str_out
-    
-
-def write_data_n1(filename, arr1):
-    """
-    Write data to N-by-1 array
-    """
-    f = open(filename, 'w')
-    for ii in range(len(arr1)):
-        f.write('%s\n' % str(arr1[ii]))
-    f.close()
-    
-def write_data_n2(filename, arr1, arr2):
-    """
-    Write data to N-by-2 array
-    """
-    f = open(filename, 'w')
-    for ii in range(len(arr1)):
-        f.write('%s\t%s\n' % (str(arr1[ii]), str(arr2[ii])))
-    f.close()
-   
-def write_data_n3(filename, arr1, arr2, arr3):
-    """
-    Write data to N-by-3 array
-    """
-    f = open(filename, 'w')
-    for ii in range(len(arr1)):
-        f.write('%s\t%s\t%s\n' % (str(arr1[ii]), str(arr2[ii]), str(arr3[ii])))
-    f.close()
-
-def append_to_file_n2(filename, x1, x2, str_format):
-    """
-    Write to file in append mode; will not overwrite existing content
-    """
-    f = open(filename, 'a')
-    if str_format == 'fe':
-        f.write('%f\t%e\n' % (x1, x2))
-    elif str_format == 'ff':
-        f.write('%f\t%f\n' % (x1, x2))
-    elif str_format == 'ss':
-        f.write('%s\t%s\n' % (x1, x2))
-    f.close()
-
-def iprint(msg, verbose=True):
-    """
-    Add a on/off switch to print: when verbose is False, do nothing; when verbose is True, print as mormal
-    """
-    if verbose:
-        print msg
-    else:
-        pass
-
-## Instrument classes below
 class ib_dev():
     def __init__(self, port=None):
         self.port = port
@@ -88,7 +23,6 @@ class ib_dev():
         print "GPIB::%d is initialized" % self.port
         print "GPIB handle = %d" % self.handle
         # Time delay dictionary below
-
         
     def write(self, msg):
         """
@@ -267,15 +201,13 @@ class sr810(ib_dev):
         Map the numerical time constant to the commmand line argument
         Return an int
         tc: unit s
-        """
-      
+        """    
         # Normalize the time constant to 10us
         # tc*1.01 to avoid the precision problem during the float point operation
         # e.g., 1/1e-5 results in 99999.99999999999, which makes exponent == 4 and fsdigit == 9 below
         val = int(tc*1.01 / 1e-5) 
         
         # Now use an alogrithm to get the command line argument
-        
         # Decompose the number val to fsdigit * 10** exponent
         exponent = int(np.floor(np.log10(val)))
         fsdigit = int(val/10**exponent)   # the first significant digit
@@ -295,17 +227,16 @@ class sr810(ib_dev):
     def sensitivity_mapping(self, sens, source_mode, direction='n2c'):
         """
         Map the numerical sensitivity to the commmand line argument
-        Return an int
-        sens: sensitivity
-              when in 'n2c'(numerical to command line) mode: unit A or V, depending on source_mode
-              when in 'c2n' mode: unitless, just an int
+        Return an int for 'n2c', or a float for 'c2n'
+        Input arg: 
+            sens: sensitivity
+              * when in 'n2c'(numerical to command line) mode: unit A or V, depending on source_mode
+              * when in 'c2n' mode: unitless, just an int
         """
         if not (source_mode == 'voltage' or source_mode == 'current'):
             raise RuntimeError('Invalid source mode: should be either "current" or "voltage"')
             
-        if direction == 'n2c':
-            # Convert from numerical to command line argument
-            
+        if direction == 'n2c': # Convert from numerical to command line argument
             # sens*1.01 to avoid the precision problem during the float point operation
             # e.g., 1/1e-5 results in 99999.99999999999, which makes exponent == 4 and fsdigit == 9 below
             if source_mode == 'current':
@@ -316,7 +247,6 @@ class sr810(ib_dev):
                 val = int(sens*1.01 / 1e-9)
                   
             # Now use an alogrithm to get the command line argument
-            
             # Decompose the number val to fsdigit * 10** exponent
             exponent = int(np.floor(np.log10(val)))
             fsdigit = int(val/10**exponent)   # the first significant digit
@@ -336,8 +266,7 @@ class sr810(ib_dev):
             i = a + exponent* 3
             return i
             
-        elif direction == 'c2n':
-            # Convert from command line argument to numerical (unit: A or V)
+        elif direction == 'c2n':  # Convert from command line argument to numerical (unit: A or V)
             sens = int(sens)
             if sens <0 or sens > 26: 
                 raise RuntimeError('Sensitivity out of range')
@@ -449,8 +378,7 @@ class sr810(ib_dev):
             raise RuntimeError('Unrecognized filter order')
         
         self.write('OFSL%d' % i)
-    
-    
+      
     def set_reserve(self, rsv_mode):
         if rsv_mode == 'high' or rsv_mode == 0:
             # High reserve
@@ -570,8 +498,6 @@ class sr810(ib_dev):
             raise RuntimeError('Unrecognized auto functions')
     
     # Here are some utility functions useful in real measurements
-    
-        
     def poll_ch1(self, pts, time_step, verbose=True):
         """
         This function reads some number of CH1 data points with certain time intervals 
@@ -585,9 +511,9 @@ class sr810(ib_dev):
         ch1_data = np.zeros((int(pts), 1))
         for ii in range(len(ch1_data)):
             ch1_data[ii] = self.get_ch1()
-            iprint("CH1 = %e" % ch1_data[ii], verbose)
+            ut.iprint("CH1 = %e" % ch1_data[ii], verbose)
             time.sleep(time_step)
-        iprint("Summary: %d points, mean = %e, std = %e" % (pts, ch1_data.mean(), ch1_data.std()), verbose)
+        ut.iprint("Summary: %d points, mean = %e, std = %e" % (pts, ch1_data.mean(), ch1_data.std()), verbose)
         return ch1_data.mean(), ch1_data.std()
     
     def sensitivity_change(self, n):

@@ -3,7 +3,8 @@
 Test script for low-frequency noise experiment
 """
 
-import i9s 
+import i9s
+import utilib as ut
 import sys
 import getopt
 import time
@@ -36,7 +37,7 @@ if __name__=='__main__':
         plt.xlabel('Voltage (V)')
         plt.ylabel('Current (A)')
         plt.savefig('IV.png')
-        i9s.write_data_n2('IV.dat', vlist, ilist)
+        ut.write_data_n2('IV.dat', vlist, ilist)
         
     elif sys.argv[1] == 'hp3582a':
         # Read the FFT trace from HP3582A 
@@ -76,7 +77,7 @@ if __name__=='__main__':
         plt.xlabel('Freuqency (Hz)')
         plt.ylabel('FFT spectrum (V^2)')
         plt.savefig('FFT_spectrum.png')
-        i9s.write_data_n3('fft_spectrum.dat', freq_axis, y_power, y_power_density)
+        ut.write_data_n3('fft_spectrum.dat', freq_axis, y_power, y_power_density)
     
     elif sys.argv[1] == 'sr810':
         sr = i9s.sr810(10)
@@ -109,7 +110,7 @@ if __name__=='__main__':
             poll_pts = 12
             poll_step = 1
             mean_over_sens_threshold = 0.15
-            std_over_sens_threshold = 0.015
+            std_over_sens_threshold = 0.01
             # The above four parameters are for the 300ms time constant setting
             
             # Initialize
@@ -153,18 +154,19 @@ if __name__=='__main__':
 #                    else: 
                     xn_list[ii] = mean
                     break
-                i9s.iprint('mean/sens = %f'  % (mean/sens), verbose_mode)
-                i9s.iprint('std/sens = %f'  % (std/sens), verbose_mode)
+                ut.iprint('mean/sens = %f'  % (mean/sens), verbose_mode)
+                ut.iprint('std/sens = %f'  % (std/sens), verbose_mode)
             
             tstop2 = time.time()            
             print 'Frequency = %.2f Hz, elapsed time = %.2f s, Xn = %e' % (freq_list[ii], tstop2-tstart2, xn_list[ii])
-            i9s.append_to_file_n2(filename, freq_list[ii], xn_list[ii], 'fe')
+            ut.append_to_file_n2(filename, freq_list[ii], xn_list[ii], 'fe')
         sr.close()
         tstop1 = time.time()
         print 'Total elapsed time = %.2f' % (tstop1 - tstart1)
         
         #  plotting
         
+        ut.sendemail('lijun@virginia.edu', 'LFN measurement is done!', '')
         
     else:
         print 'Unrecognized input arguments!'

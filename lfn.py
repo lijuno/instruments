@@ -85,6 +85,7 @@ if __name__=='__main__':
         sr.set_input_source('I1')
         sr.set_display_mode('xn')  # measure noise
         sr.set_time_constant(300e-3)
+        #sr.set_time_constant(1)
         
         freq_lb = 4    # Frequency lower bound
         freq_ub = 5000  # Frequency upper bound
@@ -98,6 +99,7 @@ if __name__=='__main__':
         filename = 'Xn_%s.dat' % time_str        
         xn_list = np.zeros(len(freq_list))
         tstart1 = time.time()
+        tstart3 = tstart1
         for ii in range(len(freq_list)):
             sr.set_frequency(freq_list[ii])
             print "Setting frequency to %0.2f" % freq_list[ii]
@@ -110,7 +112,8 @@ if __name__=='__main__':
             poll_pts = 12
             poll_step = 1
             mean_over_sens_threshold = 0.15
-            std_over_sens_threshold = 0.01
+            std_over_sens_threshold = 0.01   # for time constant = 300ms
+            #std_over_sens_threshold = 0.003   # for time constant = 1s
             # The above four parameters are for the 300ms time constant setting
             
             # Initialize
@@ -160,13 +163,17 @@ if __name__=='__main__':
             tstop2 = time.time()            
             print 'Frequency = %.2f Hz, elapsed time = %.2f s, Xn = %e' % (freq_list[ii], tstop2-tstart2, xn_list[ii])
             ut.append_to_file_n2(filename, freq_list[ii], xn_list[ii], 'fe')
+            if tstop2 - tstart3 > 3600.0*2: 
+                ut.sendemail('lijun@virginia.edu', 'LFN bi-hourly update', 'ii=%d in %0.1f minutes' % (ii, (tstop2 - tstart1)/60.0))
+                tstart3 = tstop2
+            
         sr.close()
         tstop1 = time.time()
         print 'Total elapsed time = %.2f' % (tstop1 - tstart1)
         
         #  plotting
-        
-        ut.sendemail('lijun@virginia.edu', 'LFN measurement is done!', '')
+        ut.sendemail('lijun@virginia.edu', 'LFN measurement is done!', 'Come back to lab')
+        ut.plot_lfn_data(filename)
         
     else:
         print 'Unrecognized input arguments!'

@@ -272,7 +272,11 @@ class sr810(ib_dev):
             raise RuntimeError('Unrecognized reference source string')
     
     def get_reference_source(self):
-        return int(self.query('FMOD?'))
+        fmod_str = self.query('FMOD?')
+        if fmod_str[-1] == '\n':
+            return int(fmod_str[:-1])
+        else:
+            return int(fmod_str)
     
     def set_input_source(self, input_src):
         if input_src == 'A' or input_src == 0:
@@ -299,7 +303,11 @@ class sr810(ib_dev):
             self.write('FREQ%.2f' % freq) 
     
     def get_frequency(self):
-        return float(self.query('FREQ?'))
+        freq_str = self.query('FREQ?')
+        if freq_str[-1] == '\n':
+            return float(freq_str[:-1])
+        else:
+            return float(freq_str)
     
     def set_sensitivity(self, sens, source_mode):
         # sens: unit A or V
@@ -330,7 +338,11 @@ class sr810(ib_dev):
         self.write('OFLT%d' % i)
     
     def get_time_constant(self):
-        return int(self.query('OFLT?'))
+        oflt_str = self.query('OFLT?')
+        if oflt_str[-1] == '\n':
+            return int(oflt_str[:-1])
+        else:
+            return int(oflt_str)
     
     def set_filter_order(self, order=4):
         if order == 1:
@@ -360,7 +372,11 @@ class sr810(ib_dev):
             raise RuntimeError('Unrecognized reserve mode')
     
     def get_reserve(self):
-        return int(self.query('RMOD?'))
+        rsv_str = self.query('RMOD?')
+        if rsv_str[-1] == '\n':
+            return int(rsv_str[:-1])
+        else:
+            return int(rsv_str)
     
     def set_sync_filter(self, sf_status):
         if sf_status == 'on' or sf_status == 1: 

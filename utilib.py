@@ -4,6 +4,8 @@ Utility functions
 import smtplib
 import ConfigParser
 import sys
+import numpy as np
+import matplotlib.pyplot as plt
 
 def twoscomplement(int_in, bitsize):
     """
@@ -91,7 +93,7 @@ def sendemail(to, subject, body, **kwargs):
             cc: CC address(es), a string or a string list
             bcc: BCC address(es), a string or a string list
             profile: choose a profile in rcfile, a string; the default is 'aim'
-            rcfile: the path for rcfile, a string
+            rcfile: the path for rcfile, a string; an example of rcfile is available at https://gist.github.com/vadiode/7076973#file-sendemailrc
     Examples:
     send_email('user1@example.com', 'Test', 'This is a test'); 
     send_email('user1@example.com', 'Test', 'This is a test', profile='aim'); 
@@ -147,3 +149,15 @@ def sendemail(to, subject, body, **kwargs):
     server.login(username, password)
     server.sendmail(sender, to+cc+bcc, msg)
     server.quit()
+    
+def plot_lfn_data(filename):
+    """
+    Plot the LFN data given the data filename
+    """
+    d = np.loadtxt(filename)
+    plt.loglog(d[:,0], d[:,1])
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Noise')
+    plt.title(filename)
+    plt.savefig(filename+'.png')
+    pass

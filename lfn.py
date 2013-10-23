@@ -87,7 +87,7 @@ if __name__=='__main__':
         sr.set_time_constant(300e-3)
         #sr.set_time_constant(1)
         
-        freq_lb = 4    # Frequency lower bound
+        freq_lb = 1    # Frequency lower bound
         freq_ub = 5000  # Frequency upper bound
         pts = 100       # number of data points along frequency axis
         verbose_mode = True
@@ -107,17 +107,18 @@ if __name__=='__main__':
             sr.exec_auto('gain')
             time.sleep(5)
             sr.exec_auto('reserve')
+            time.sleep(5)
             
             # Now enter a sensitivity adjustment loop till the output stablizes in some level
-            poll_pts = 12
-            poll_step = 1
-            mean_over_sens_threshold = 0.15
+            poll_pts = 12   # how many points in a poll
+            poll_step = 1  # unit: s
+            mean_over_sens_threshold = 0.15  
             std_over_sens_threshold = 0.01   # for time constant = 300ms
-            #std_over_sens_threshold = 0.003   # for time constant = 1s
+            abs_slope_over_mean_threshold = 0.005
             # The above four parameters are for the 300ms time constant setting
             
             # Initialize
-            mean, std = sr.poll_ch1(poll_pts, poll_step, verbose_mode)
+            mean, std, slope = sr.poll_ch1(poll_pts, poll_step, verbose_mode)
             sens = sr.get_sensitivity('current')
             
             tstart2 = time.time()
@@ -138,15 +139,19 @@ if __name__=='__main__':
                         # Enhance the sensitivity to the next level
                         # (Or reduce the range to the next level)
                         sr.sensitivity_change(-1)
-                        mean, std = sr.poll_ch1(poll_pts, poll_step, verbose_mode)
+                        mean, std, slope = sr.poll_ch1(poll_pts, poll_step, verbose_mode)
                         sens = sr.get_sensitivity('current')
                         
                 elif std/sens > std_over_sens_threshold:
                     # Data not stable enough
                     # Continue the poll    
-                    mean, std = sr.poll_ch1(poll_pts, poll_step, verbose_mode)
+                    mean, std, slope = sr.poll_ch1(poll_pts, poll_step, verbose_mode)
                     sens = sr.get_sensitivity('current')
-                    
+                elif abs(slope/mean) > abs_slope_over_mean_threshold: 
+                    # The data trend is still changing unidirectionally
+                    # Continue the poll
+                    mean, std, slope = sr.poll_ch1(poll_pts, poll_step, verbose_mode)
+                    sens = sr.get_sensitivity('current')
                 else:
 #                    time.sleep(2)
 #                    if sr.get_overload_status('output'):
@@ -159,6 +164,7 @@ if __name__=='__main__':
                     break
                 ut.iprint('mean/sens = %f'  % (mean/sens), verbose_mode)
                 ut.iprint('std/sens = %f'  % (std/sens), verbose_mode)
+                ut.iprint('slope/mean = %f' % (slope/mean), verbose_mode)
             
             tstop2 = time.time()            
             print 'Frequency = %.2f Hz, elapsed time = %.2f s, Xn = %e' % (freq_list[ii], tstop2-tstart2, xn_list[ii])

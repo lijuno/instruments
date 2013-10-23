@@ -6,7 +6,7 @@ from linuxgpib import ib_dev
 import utilib as ut
 import time
 import numpy as np
-# import scipy as sp
+from scipy import stats
 
 class hp3582a(ib_dev):
     """
@@ -489,15 +489,22 @@ class sr810(ib_dev):
         Input args: 
             pts: number of CH1 data points, int type
             time_step: time interval between two adjacent sampling, float type, unit: s
-        Return: (mean, standard_deviation)
+        Return: (mean, standard_deviation, slope_from_linear_fit)
         """
-        ch1_data = np.zeros((int(pts), 1))
+        ch1_data = [0]*(int(pts))
+        time_axis = range(int(pts))
         for ii in range(len(ch1_data)):
             ch1_data[ii] = self.get_ch1()
             ut.iprint("CH1 = %e" % ch1_data[ii], verbose)
+            time_axis[ii] = time_axis[ii] * time_step
             time.sleep(time_step)
-        ut.iprint("Summary: %d points, mean = %e, std = %e" % (pts, ch1_data.mean(), ch1_data.std()), verbose)
-        return ch1_data.mean(), ch1_data.std()
+        #print time_axis
+        #print ch1_data
+        slope, intercept, r_value, p_value, std_err = stats.linregress(time_axis,ch1_data) # unit: V/s or A/s
+        mean = np.array(ch1_data).mean()
+        std = np.array(ch1_data).std()
+        ut.iprint("Summary: %d points, mean = %e, std = %e, slope=%e" % (pts, mean, std, slope), verbose)
+        return mean, std, slope
     
     def sensitivity_change(self, n):
         """

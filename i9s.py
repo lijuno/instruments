@@ -524,3 +524,32 @@ class sr810(ib_dev):
         self.set_sensitivity_c(i2)
         time.sleep(3)
         self.exec_auto('reserve')
+        
+class sr760(ib_dev):
+    """
+    SR760 FFT spectrum analyzer
+    """
+    def __init__(self, port=11):
+        # The GPIB port can be set in the front panel: 
+        # System setup --> GPIB --> GPIB address
+        print "SR760 FFT spectrum analyzer"
+        ib_dev.__init__(self, port)
+    
+    def initialize(self):
+        ib_dev.initialize(self)
+        
+    def get_data(self):
+        """
+        Get spectrum data from SR760
+        Return x and y values
+        """
+        data_pts = 400
+        x = [0 for _ in range(data_pts)]
+        y = [0 for _ in range(data_pts)]  # 400 data points are stored for the active trace
+        for ii in range(data_pts):
+            # The reason to use this for loop to read data rather than a single SPEC?0
+            # command is that the latter is not stable enough yet for some reason...
+            # For loop is slower, but at least it gives stable output
+            x[ii] = float(self.query('BVAL?0,%d' % ii))
+            y[ii] = float(self.query('SPEC?0,%d' % ii))
+        return x,y

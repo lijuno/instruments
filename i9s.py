@@ -538,10 +538,104 @@ class sr760(ib_dev):
     def initialize(self):
         ib_dev.initialize(self)
         
+    # Helper functions
+    def span_mapping(self, x, direction='c2n'):
+        """
+        Convert span from real value (in Hz) to command line number or vice versa
+        """
+        if direction.lower() == 'n2c':
+            # Convert from real value in Hz to command line number
+            # In this case x has unit Hz
+            if x > 100e3 or x < 100e3/2.0**19:
+                raise RuntimeError('Input value out of range')
+            else:
+                c = 19 - np.log2(100e3/x)
+                return int(np.round(c))    # round to the nearest integer
+        elif direction.lower() == 'c2n':
+            if x > 19 or x <0:
+                raise RuntimeError('Input value out of range')
+            else:
+                return 100e3/2**(19-x)
+        else:
+            raise RuntimeError('Invalid input arguments')
+    # End of helper function
+    
+    def set_span(self, s, stype='c'):
+        """
+        set_frequency_span(self, s, stype='c');
+        s: span;
+        stype: 'c' for command line number, 'n' for real number in Hz
+        """
+        if stype.lower() == 'c':
+            # Command line number
+            self.write('SPAN%d' % s)
+        elif stype.lower() == 'n':
+            c = self.span_mapping(s, 'n2c')
+            self.write('SPAN%d' % c)
+            
+    def get_span(self, stype='c'):
+        # Get command line number
+        c = int(self.query('SPAN?'))
+        if stype.lower() == 'c':
+            return c
+        elif stype.lower() == 'n':
+            # Get real frequency number in Hz
+            return self.span_mapping(c, 'c2n')
+            
+    def set_frequency(self, f, ftype):
+        """
+        set_frequency(self, f, ftype); 
+        f: frequency in Hz; ftype: 'start' or 'center'
+        """
+        if ftype.lower() == 'start':
+            self.write('STRF%.3f' % f)
+        elif ftype.lower() == 'center':
+            self.write('CTRF%.3f' % f)
+        else: 
+            raise RuntimeError('Invalid input ftype')
+            
+    def get_frequency(self, ftype):
+        """
+        get_frequency(self, ftype)
+        ftype: 'start' or 'center'
+        """ 
+        if ftype.lower() == 'start':
+            return float(self.query('STRF?'))
+        elif ftype.lower() == 'center':
+            return float(self.query('CTRF?'))
+        else: 
+            raise RuntimeError('Invalid input ftype')     
+    
+    def set_coupling(self, ctype):
+        if ctype.lower() == 'ac':
+            self.write('ICPL0')
+        elif ctype.lower() == 'dc':
+            self.write('ICPL1')
+        else:
+            raise RuntimeError('Wrong input coupling type')
+    
+    def exec_front_panel(self, task):
+        """
+        Execute front panel commands (like press the button)
+        """
+        if task.lower() == 'start':
+            self.write('STRT')
+        elif task.lower() == 'autoscale':
+            self.write('AUTS')
+        else:
+            pass
+    
+    def get_status(self, stype):
+        """
+        get_status(self, stype);
+        Get the status of SR760
+        """
+        pass
+    
     def get_data(self):
         """
-        Get spectrum data from SR760
-        Return x and y values
+        get_data(self);
+        Get spectrum data from SR760; return x- and y-axis values
         """
         data_pts = 400
         x = [0 for _ in range(data_pts)]
@@ -552,4 +646,26 @@ class sr760(ib_dev):
             # For loop is slower, but at least it gives stable output
             x[ii] = float(self.query('BVAL?0,%d' % ii))
             y[ii] = float(self.query('SPEC?0,%d' % ii))
+        return x,y
+        
+    # Here are some useful procedure in measurement
+    def measure_full_span(self, span=None, filename_prefix=None, stype = 'c'):
+        """
+        Measure from the minimum frequency step to the full span and save the data
+        """
+        if stype.lower() == 'c':
+            c = span
+        elif stype.lower() == 'n':
+            c = self.span_mapping(span, 'n2c')
+        else:
+            raise RuntimeError('Invalid span input')
+        
+        self.set_span(c)
+        fspan = self.get_span('n')
+        self.set_frequency(fspan/400, 'start')  # set minimum start frequency
+        self.exec_front_panel('start')   # start the measurement  
+        time.sleep(30)  # waiting for the experiment; 30 s for 1500 linear averaging
+        self.exec_front_panel('autoscale')
+        x,y = self.get_data()   # fetch the data from SR760
+        ut.write_data_n2('%s_%.0fHz.dat' % (filename_prefix, fspan), x, y)
         return x,y

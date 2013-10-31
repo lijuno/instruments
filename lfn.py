@@ -180,7 +180,15 @@ if __name__=='__main__':
         #  plotting
         ut.sendemail('lijun@virginia.edu', 'LFN measurement is done!', 'Come back to lab')
         ut.plot_lfn_data(filename)
-        
+    elif sys.argv[1] == 'sr760':
+        sr = i9s.sr760(11)
+        sr.initialize()
+        sr.set_coupling('dc')
+        filename_prefix = 'V_DCcoupled_1V_1MOhm'
+        sr.measure_full_span(15, filename_prefix, 'c')
+        sr.measure_full_span(12, filename_prefix, 'c')
+        sr.measure_full_span(9, filename_prefix, 'c')
+        sr.close()
     else:
         print 'Unrecognized input arguments!'
         

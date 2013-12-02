@@ -669,3 +669,150 @@ class sr760(ib_dev):
         x,y = self.get_data()   # fetch the data from SR760
         ut.write_data_n2('%s_%.0fHz.dat' % (filename_prefix, fspan), x, y)
         return x,y
+
+class agilent81004B(ib_dev):
+    """
+    Agilent infiniium DSO81004B high-speed oscilloscope
+    """
+    
+    def __init__(self, port=7):
+        """
+        The default GPIB address is 7, which can be changed via "Uilities" --> "GPIB Setup" on the screen
+        """
+        ib_dev.__init__(self, port)
+    
+    def initialize(self):
+        ib_dev.initialize(self)
+        self.write(":SYSTem:HEADer OFF")
+        self.write(":TIMebase:REFerence LEFT")
+              
+    def reset(self):
+        self.write("*RST")
+        self.write(":SYSTem:HEADer OFF")
+        self.write(":TIMebase:REFerence LEFT")
+        
+#    def set_timescale(self, timescale):
+#        """
+#        Set the horizontal time per division in seconds; full range is ten times the division
+#        """
+#        self.write(':TIMebase:SCALe %e' % timescale)   
+    
+    def set_timerange(self, timerange):
+        """
+        set_timerange(self, timerange)
+        Set the horizontal time full range
+        timerange: in s
+        """
+        self.write(':TIMebase:RANGe %e' % timerange)
+    
+    def set_yrange(self, source, yrange):
+        """
+        set_yrange(self, source, yrange)
+        Set the vertical full range
+        source: channel #
+        yrange: in volts
+        """
+        self.write(':CHANnel%d:RANGe %e' % (source, yrange))
+        
+    def set_triggering(self, **kwargs):
+        """
+        Set up triggering
+        kwargs options: 
+            * source=x, an int: Channel x as triggering source
+            * slope=x, an int: -1 for negative slope, 1 for positive slope, 0 for either
+            * level=x, a float: triggering level
+        """
+        for key,value in kwargs.iteritems():
+            if key == "source":
+                self.write(":TRIGger:EDGE:SOURce CHANnel%d" % int(value))
+            elif key == "slope":
+                if value == 1:
+                    slope_str = 'POSitive'
+                elif value == -1:
+                    slope_str = "NEGative"
+                elif value == 0:
+                    slope_str = "EITHer"
+                else:
+                    raise ValueError('Unrecognized slope option')   
+                self.write(":TRIGger:EDGE:SLOPe %s" % slope_str)
+            elif key == "level":
+                pass  # postpone for later
+            elif key == "coupling":
+                pass
+            else:
+                raise ValueError("Unrecognized triggering option")
+                
+        # Run trigger level setting after the previous for loop because it is dependent on the trigger source
+        for key, value in kwargs.iteritems():
+            if key == "level":
+                src_str = self.query(":TRIGger:EDGE:SOURce?")   # something like 'CHAN1'
+                src = int(src_str[4])
+                self.write(":TRIGger:LEVel CHANnel%d,%.2f" % (src, value))    
+    
+    def set_acquisition(self, **kwargs):
+        """
+        set_acquisition(self, **kwargs)
+        Set up acquisition system
+        kwargs options:
+            * average = x, an int: x=1 for ON, 0 for OFF
+            * average_count =x, an int: x is the number of averages
+            * mode =x, an int: x =0 for real time (RTIMe), 1 for peak dection, 2 for high resolution
+            * points =x, an int: number of sampling points
+            * srate=x, a float: sampling rate
+            * 
+        """
+        pass
+    
+    def record_data(self, source):
+        # self.write(":DIGitize CHANnel%d" % source)
+        self.write(":DIGitize CHANnel%d" % source) 
+        #self.write(":CHANnel%d:DISPlay ON" % source)
+        
+    def get_timeaxis(self):
+        pts = int(self.query(":WAVeform:POINts?"))
+        xinc = float(self.query(":WAVeform:XINCrement?"))
+        xorg = float(self.query(":WAVeform:XORigin?")) 
+        t = [ii*xinc + xorg for ii in range(pts)]
+        return t
+        
+    def get_ydata(self, source, mode='ascii'):
+        if mode.lower() == "word":
+            ## For some reason some part of the obtained y data are not correct -- need to find why
+            pts = int(self.query(":WAVeform:POINts?"))
+            self.write(':WAVeform:SOURce CHANnel%d' % int(source))
+            self.write(":WAVeform:BYTeorder MSBFirst")
+            self.write(":WAVeform:FORMat WORD")  # the default is MSB first, and then LSB
+            preamble_len = str(pts).__len__() + 2
+            d = self.query(":WAVeform:DATA?", pts*2 + preamble_len + 1) # One word contains two bytes, and preamble, and 1 byte for '\n' by the end of the string       
+            d = d[preamble_len:-1]  # remove preamble
+            
+            # Now process the obtained raw data
+            # Every word is made up of two bytes, representing the y axis level
+            yinc = float(self.query(":WAVeform:YINCrement?")) 
+            yorg = float(self.query(":WAVeform:YORigin?")) 
+            yref = float(self.query(":WAVeform:YREFerence?")) 
+            print yinc
+            print yorg
+            print yref
+            data = range(pts)  # pre-assign space for data
+            for ii in range(pts):
+                # MSB first by default
+                byteM = ord(d[2*ii])
+                byteL = ord(d[2*ii+1])
+                dlevel = (byteM << 8) + byteL
+                data[ii] = (dlevel - yref)*yinc + yorg
+            return data
+            
+        elif mode.lower() == "ascii":
+            # Get data in ASCII format; it is slower than WORD, but no conversion is needed
+            pts = int(self.query(":WAVeform:POINts?"))
+            self.write(':WAVeform:SOURce CHANnel%d' % int(source))
+            self.write(":WAVeform:FORMat ASCii")
+            d = self.query(":WAVeform:DATA?", pts * 10 + pts -1) # 10 byte per point max, plus comma separators
+            data = [float(ii) for ii in d.split(',')]
+            return data
+        else:
+            raise ValueError("Unrecognized mode")
+        
+
+        

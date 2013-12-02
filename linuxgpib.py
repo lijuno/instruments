@@ -14,6 +14,11 @@ class ib_dev():
         #gpib.timeout(self.handle, 12)  # timeout T3s = 12; check help(gpib)
         print "GPIB::%d is initialized" % self.port
         print "GPIB handle = %d" % self.handle
+        try: 
+        # Print IDN info if available
+            self.query("*IDN?")
+        except:
+            pass
         # Time delay dictionary below
         
     def write(self, msg):

@@ -14,13 +14,12 @@ if __name__ == "__main__":
     usage_str = 'Usage: python transient.py -a T300K'
     args = sys.argv[1:]
     try:
-        opts, args = getopt.getopt(args, "ha:t:", ['help'])
+        opts, args = getopt.getopt(args, "ha:", ['help'])
     except getopt.GetoptError as err:
         # print help information and exit:
         print str(err)
         sys.exit(2)
     
-    N = 1; # measurement times, 1 by default 
     notes_str = ''
     for opt, arg in opts:
         if opt in ("-h", "--help"):
@@ -28,8 +27,6 @@ if __name__ == "__main__":
             sys.exit()
         elif opt == '-a':
             notes_str = str(arg)
-        elif opt == '-t':
-            N = int(arg)
             
     
     a = i9s.agilent81004B(7)
@@ -44,12 +41,10 @@ if __name__ == "__main__":
     filename = 'V_%s.dat' % notes_str
     
     y2 = 0
-    for ii in range(N):    
-        a.record_data(4)
-        y = a.get_ydata(4)
-        y2 = y2 + np.array(y)
-        print y.__len__()
-        print "%d" % ii
+    a.record_data(4)
+    y = a.get_ydata(4, mtime=5)
+    y2 = y2 + np.array(y)
+
     ut.write_data_n2(filename, t, y2)
     plt.plot(y2)
     plt.show()

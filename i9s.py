@@ -721,6 +721,7 @@ class agilent81004B(ib_dev):
             * source=x, an int: Channel x as triggering source
             * slope=x, an int: -1 for negative slope, 1 for positive slope, 0 for either
             * level=x, a float: triggering level
+            * sweep = x, an int: sweep mode, 0 for AUTO, 1 for TRIGGEREd, 2 for SINGLE
         """
         for key,value in kwargs.iteritems():
             if key == "source":
@@ -735,6 +736,15 @@ class agilent81004B(ib_dev):
                 else:
                     raise ValueError('Unrecognized slope option')   
                 self.write(":TRIGger:EDGE:SLOPe %s" % slope_str)
+            elif key == "sweep":
+                if value ==0:
+                    self.write(":TRIGger:SWEep AUTO")
+                elif value == 1:
+                    self.write(":TRIGger:SWEep TRIGgered")
+                elif value == 2: 
+                    self.write(":TRIGger:SWEep SINGle")
+                else:
+                    ValueError("Unrecognized triggering sweep option")
             elif key == "level":
                 pass  # postpone for later
             elif key == "coupling":
@@ -748,6 +758,24 @@ class agilent81004B(ib_dev):
                 src_str = self.query(":TRIGger:EDGE:SOURce?")   # something like 'CHAN1'
                 src = int(src_str[4])
                 self.write(":TRIGger:LEVel CHANnel%d,%.2f" % (src, value))    
+
+    def set_average(self, **kwargs):
+        """
+        set_average(self, **kwargs)
+        kwargs option:
+            * count = x, an int: average count
+            * status = x, an int: x =1 for ON, 0 for OFF
+        """
+        for key, value in kwargs.iteritems():
+            if key=="count":
+                self.write(":ACQuire:AVERage:COUNt %d" % value)
+            elif key == "status":
+                if value == 1:
+                    self.write(":ACQuire:AVERage ON")
+                elif value == 0:
+                    self.write(":ACQuire:AVERage OFF")
+                else:
+                    raise ValueError("Unrecognized average status") 
     
     def set_acquisition(self, **kwargs):
         """
@@ -763,10 +791,16 @@ class agilent81004B(ib_dev):
         """
         pass
     
-    def record_data(self, source):
-        # self.write(":DIGitize CHANnel%d" % source)
-        self.write(":DIGitize CHANnel%d" % source) 
-        #self.write(":CHANnel%d:DISPlay ON" % source)
+    def record_data(self, source, mtime=5):
+        """
+        record_data(self, source, mtime=5)
+        source: acquisition channel, 
+        """
+#        self.write(":DIGitize CHANnel%d" % source) 
+#        self.write(":CHANnel%d:DISPlay ON" % source)
+        self.write(":RUN")
+        time.sleep(mtime)
+        self.write(":STOP")
         
     def get_timeaxis(self):
         pts = int(self.query(":WAVeform:POINts?"))

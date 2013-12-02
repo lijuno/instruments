@@ -35,16 +35,17 @@ if __name__ == "__main__":
     
     a.set_triggering(source=3, slope=1, level=0.5, sweep=1)
     a.set_timerange(50e-3)
-    a.set_yrange(source=4, yrange=1)
-    a.set_average(count=16, status=1)
+    a.set_yrange(source=4, yrange=2)
+    a.set_average(count=8, status=1)
     t = a.get_timeaxis()
     filename = 'V_%s.dat' % notes_str
     
     y2 = 0
-    a.record_data(4)
-    y = a.get_ydata(4, mtime=5)
+    a.record_data(4, mtime = 10)
+    y = a.get_ydata(4)
     y2 = y2 + np.array(y)
-
+    #print len(y2)
+    
     ut.write_data_n2(filename, t, y2)
     plt.plot(y2)
     plt.show()

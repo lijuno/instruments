@@ -47,7 +47,7 @@ def write_data_n3(filename, arr1, arr2, arr3):
     """
     f = open(filename, 'w')
     for ii in range(len(arr1)):
-        f.write('%s\t%s\t%s\n' % (str(arr1[ii]), str(arr2[ii]), str(arr3[ii])))
+        f.write('%e\t%f\t%f\n' % (arr1[ii], arr2[ii], arr3[ii]))
     f.close()
 
 def append_to_file_n2(filename, x1, x2, str_format):

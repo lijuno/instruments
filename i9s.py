@@ -685,7 +685,9 @@ class agilent81004B(ib_dev):
         ib_dev.initialize(self)
         self.write(":SYSTem:HEADer OFF")
         self.write(":TIMebase:REFerence LEFT")
-              
+        self.src4_gnd = 4.0e-3   # source 4 ground offset voltage in volt, an value averaged over 64 samples, var=5% under room temperature
+        self.src3_gnd = 4.2e-3   # source 3 ground offset voltage in volt, an value averaged over 64 samples, var=5% under room temperature
+        
     def reset(self):
         self.write("*RST")
         self.write(":SYSTem:HEADer OFF")
@@ -714,8 +716,9 @@ class agilent81004B(ib_dev):
         """
         self.write(':CHANnel%d:RANGe %e' % (source, yrange))
         
-    def set_triggering(self, **kwargs):
+    def config_triggering(self, **kwargs):
         """
+        config_triggering(self, **kwargs)
         Set up triggering
         kwargs options: 
             * source=x, an int: Channel x as triggering source
@@ -759,9 +762,9 @@ class agilent81004B(ib_dev):
                 src = int(src_str[4])
                 self.write(":TRIGger:LEVel CHANnel%d,%.2f" % (src, value))    
 
-    def set_average(self, **kwargs):
+    def config_average(self, **kwargs):
         """
-        set_average(self, **kwargs)
+        config_average(self, **kwargs)
         kwargs option:
             * count = x, an int: average count
             * status = x, an int: x =1 for ON, 0 for OFF
@@ -795,6 +798,7 @@ class agilent81004B(ib_dev):
         """
         record_data(self, source, mtime=5)
         source: acquisition channel, 
+        mtime: measurement time, a delay before stopping the measurement
         """
 #        self.write(":DIGitize CHANnel%d" % source) 
 #        self.write(":CHANnel%d:DISPlay ON" % source)
@@ -811,7 +815,9 @@ class agilent81004B(ib_dev):
         
     def get_ydata(self, source, mode='ascii'):
         if mode.lower() == "word":
-            ## For some reason some part of the obtained y data are not correct -- need to find why
+            # For some reason, in WORD mode, some part of the obtained y data are not correct
+            # Need to fix it in the future
+            # For now, use ASCII mode, which is slower but works
             pts = int(self.query(":WAVeform:POINts?"))
             self.write(':WAVeform:SOURce CHANnel%d' % int(source))
             self.write(":WAVeform:BYTeorder MSBFirst")
@@ -847,6 +853,3 @@ class agilent81004B(ib_dev):
             return data
         else:
             raise ValueError("Unrecognized mode")
-        
-
-        

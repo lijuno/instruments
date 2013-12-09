@@ -15,7 +15,7 @@ import numpy as np
 if __name__=='__main__':
     if len(sys.argv) == 1:
         print "No input options!"
-    elif sys.argv[1] == 'k2400c':
+    elif sys.argv[1].lower() == 'k2400c':
         # IV sweep with Keithley 2400C
         
         usage_str = 'Usage: python lfn.py k2400c'
@@ -27,7 +27,7 @@ if __name__=='__main__':
             print str(err)
             sys.exit(2)
         
-        k = i9s.keithley2400c(24)
+        k = i9s.Keithley2400c(24)
         k.initialize()
         vlist = np.linspace(0.4, 1, 41)
         ilist = k.IV_sweep(vlist, fourwire=False)
@@ -39,7 +39,7 @@ if __name__=='__main__':
         plt.savefig('IV.png')
         ut.write_data_n2('IV.dat', vlist, ilist)
         
-    elif sys.argv[1] == 'hp3582a':
+    elif sys.argv[1].lower() == 'hp3582a':
         # Read the FFT trace from HP3582A 
         # Input argument "-u" sets the upper limit frequency 
         
@@ -61,7 +61,7 @@ if __name__=='__main__':
                 freq_ub = int(a)
         print "Frequency upper bound = %d Hz" % freq_ub
         
-        hp = i9s.hp3582a(11)
+        hp = i9s.HP3582A(11)
         hp.initialize()
         spectrum_data = hp.get_spectrum()  # in dB
         hp.close()
@@ -79,8 +79,8 @@ if __name__=='__main__':
         plt.savefig('FFT_spectrum.png')
         ut.write_data_n3('fft_spectrum.dat', freq_axis, y_power, y_power_density)
     
-    elif sys.argv[1] == 'sr810':
-        sr = i9s.sr810(10)
+    elif sys.argv[1].lower() == 'sr810':
+        sr = i9s.SR810(10)
         sr.initialize()
         sr.set_input_source('I1')
         sr.set_display_mode('xn')  # measure noise
@@ -180,8 +180,8 @@ if __name__=='__main__':
         #  plotting
         ut.sendemail('lijun@virginia.edu', 'LFN measurement is done!', 'Come back to lab')
         ut.plot_lfn_data(filename)
-    elif sys.argv[1] == 'sr760':
-        sr = i9s.sr760(11)
+    elif sys.argv[1].lower() == 'sr760':
+        sr = i9s.SR760(11)
         sr.initialize()
         sr.set_coupling('dc')
         filename_prefix = 'V_DCcoupled_1V_1MOhm'

@@ -8,7 +8,7 @@ import time
 import numpy as np
 from scipy import stats
 
-class hp3582a(ib_dev):
+class HP3582A(ib_dev):
     """
     HP3582A FFT spectrum analyzer
     The memory wordsize is 16 bit, or 2 bytes
@@ -41,9 +41,8 @@ class hp3582a(ib_dev):
         
         data_float = [float(d) for d in data.split(',')]
         return data_float  # return a float type array
-
         
-class keithley2400c(ib_dev): 
+class Keithley2400C(ib_dev):
     """
     Keithley 2400C sourcemeter
     """
@@ -108,7 +107,7 @@ class keithley2400c(ib_dev):
         data_int = [float(d) for d in data_str.split(',')]
         return data_int
     
-class hp3314a(ib_dev):
+class HP3314a(ib_dev):
     """
     HP3314A function generator, using HP-IB
     """
@@ -146,7 +145,7 @@ class hp3314a(ib_dev):
         elif freq >= 1e6:
             self.write('FR%0.2fMZ' % (freq/1e6))
             
-class sr810(ib_dev):
+class SR810(ib_dev):
     """
     SR810 DSP lock-in amplifier
     """
@@ -525,7 +524,7 @@ class sr810(ib_dev):
         time.sleep(3)
         self.exec_auto('reserve')
         
-class sr760(ib_dev):
+class SR760(ib_dev):
     """
     SR760 FFT spectrum analyzer
     """
@@ -670,7 +669,7 @@ class sr760(ib_dev):
         ut.write_data_n2('%s_%.0fHz.dat' % (filename_prefix, fspan), x, y)
         return x,y
 
-class agilent81004B(ib_dev):
+class Agilent81004B(ib_dev):
     """
     Agilent infiniium DSO81004B high-speed oscilloscope
     """

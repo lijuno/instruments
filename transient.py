@@ -28,7 +28,7 @@ def p1(argv):
             notes_str = str(arg)
             
     
-    a = i9s.agilent81004B(7)
+    a = i9s.Agilent81004B(7)
     a.initialize()
     #a.reset()
     

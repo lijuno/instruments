@@ -180,16 +180,33 @@ if __name__=='__main__':
         #  plotting
         ut.sendemail('lijun@virginia.edu', 'LFN measurement is done!', 'Come back to lab')
         ut.plot_lfn_data(filename)
+
     elif sys.argv[1].lower() == 'sr760':
+        # Use SR760 FFT spectrum analyzer
+        usage_str = 'python lfn.py sr570 -a n1'
+        argv = sys.argv[2:]
+        try:
+            opts, args = getopt.getopt(argv, "a:h", ['help'])
+        except getopt.GetoptError as err:
+            # print help information and exit:
+            print str(err)
+            sys.exit(2)
+
+        note_str = ''  # default value
+        for o, a in opts:
+            if o in ("-h", "--help"):
+                print usage_str
+                sys.exit()
+            elif o == '-a':
+                note_str = str(a)
+
         sr = i9s.SR760(11)
         sr.initialize()
         sr.set_coupling('dc')
-        filename_prefix = 'V_DCcoupled_1V_1MOhm'
-        sr.measure_full_span(15, filename_prefix, 'c')
+        filename_prefix = 'LFN_%s' % note_str
         sr.measure_full_span(12, filename_prefix, 'c')
-        sr.measure_full_span(9, filename_prefix, 'c')
+        sr.measure_full_span(11, filename_prefix, 'c')
+        #sr.measure_full_span(9, filename_prefix, 'c')
         sr.close()
     else:
         print 'Unrecognized input arguments!'
-        
-        

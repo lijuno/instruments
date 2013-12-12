@@ -541,6 +541,8 @@ class SR760(ib_dev):
     def span_mapping(self, x, direction='c2n'):
         """
         Convert span from real value (in Hz) to command line number or vice versa
+        'c2n': from command line number to real number in Hz
+        'n2c': from real number in Hz to command line number
         """
         if direction.lower() == 'n2c':
             # Convert from real value in Hz to command line number
@@ -666,7 +668,9 @@ class SR760(ib_dev):
         time.sleep(30)  # waiting for the experiment; 30 s for 1500 linear averaging
         self.exec_front_panel('autoscale')
         x,y = self.get_data()   # fetch the data from SR760
-        ut.write_data_n2('%s_%.0fHz.dat' % (filename_prefix, fspan), x, y)
+        data_filename = '%s_%.0fHz.dat' % (filename_prefix, fspan)
+        ut.write_data_n2(data_filename, x, y, ftype='ee')
+        ut.plot_lfn_data(data_filename)
         return x,y
 
 class Agilent81004B(ib_dev):

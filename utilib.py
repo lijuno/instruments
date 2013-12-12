@@ -31,14 +31,19 @@ def write_data_n1(filename, arr1):
         f.write('%s\n' % str(arr1[ii]))
     f.close()
     
-def write_data_n2(filename, arr1, arr2):
+def write_data_n2(filename, arr1, arr2, ftype='ef'):
     """
     Write data to N-by-2 array
     """
     f = open(filename, 'w')
     for ii in range(len(arr1)):
         #f.write('%s\t%s\n' % (str(arr1[ii]), str(arr2[ii])))
-        f.write('%e\t%f\n' % (arr1[ii], arr2[ii]))
+        if ftype.lower() == 'ef':
+            f.write('%e\t%f\n' % (arr1[ii], arr2[ii]))
+        elif ftype.lower() == 'ee':
+            f.write('%e\t%e\n' % (arr1[ii], arr2[ii]))
+        elif ftype.lower() == 'fe':
+            f.write('%f\t%e\n' % (arr1[ii], arr2[ii]))
     f.close()
    
 def write_data_n3(filename, arr1, arr2, arr3):
@@ -161,4 +166,3 @@ def plot_lfn_data(filename):
     plt.ylabel('Noise')
     plt.title(filename)
     plt.savefig(filename+'.png')
-    pass

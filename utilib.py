@@ -202,3 +202,15 @@ def osc_time_shift(infile, outfile=None):
     #plt.plot(t2, y2)
     #plt.show()
 
+
+def rtd(resistance):
+    """
+    Convert the RTD resistance reading to temperature
+    The reference curve is obtained from US Sensors
+    Pt RTD model #: PPG102A6; manufacturer: US Sensors
+    """
+    tb = np.loadtxt('files/RTD_Pt1000_table.asc')
+    temperature = np.interp(resistance, tb[:,0], tb[:,1])
+    return temperature
+
+

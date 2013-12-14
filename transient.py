@@ -65,34 +65,16 @@ def config(argv):
         a.set_srate(srate)
     a.close()
 
-def data(argv):
+def data(filename):
     """
     Get traces from oscilloscope
-    Usage: python transient.py data -o T300K
-    options:
-        * -o: output file name
+    Usage: python transient.py data filename
     """
-    usage_str = 'Usage: python transient.py data -o T300K'
-    try:
-        opts, args = getopt.getopt(argv, "ho:", ['help', 'outfile='])
-    except getopt.GetoptError as err:
-        # print help information and exit:
-        print str(err)
-        sys.exit(2)
-
-    notes_str = 'data'    # default file name
-    for opt, arg in opts:
-        if opt in ("-h", "--help"):
-            print usage_str
-            sys.exit()
-        elif opt in ('-o', '--outfile'):
-            notes_str = str(arg)
-
     a = i9s.Agilent81004B(7)
     a.initialize()
 
     t = a.get_timeaxis()
-    filename = '%s.dat' % notes_str
+    filename = '%s.dat' % filename
 
     y4 = 0
     y3 = 0
@@ -109,8 +91,8 @@ def data(argv):
         plt.semilogx(y3)
         plt.show()
 
-def utility(argv):
-    usage_str = 'Usage: python transient.py utility -i 300K -o 300K_out'
+def timeshift(argv):
+    usage_str = 'Usage: python transient.py timeshift -i 300K -o 300K_out'
     try:
         opts, args = getopt.getopt(argv, "hi:o:", ['help', 'infile=', 'outfile='])
     except getopt.GetoptError as err:
@@ -137,13 +119,15 @@ def config2():
     config(['-a', '16', '-t', '50e-3', '-s', '5e6'])
 
 if __name__ == "__main__":
-    usage_str = 'Usage: python transient.py config/data '
+    usage_str = 'Usage: python transient.py config/data/timeshift/rtd'
     if sys.argv[1] == 'config':
         config(sys.argv[2:])
     elif sys.argv[1] == 'data':
-        data(sys.argv[2:])
-    elif sys.argv[1] == 'utility':
-        utility(sys.argv[2:])
+        data(sys.argv[2])
+    elif sys.argv[1] == 'timeshift':
+        timeshift(sys.argv[2:])
+    elif sys.argv[1] == 'rtd':
+        print '%.1f K' % ut.rtd(float(sys.argv[2]))
     elif sys.argv[1] == 'config_long_pulse':
         config1()
     elif sys.argv[1] == 'config_short_pulse':

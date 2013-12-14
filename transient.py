@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Measure the transient signal with Agilent infiniium DSO81004B oscilloscope
 """
@@ -16,16 +18,17 @@ def config(argv):
     Usage: python transient.py config -t 100e-3 --average-count 16
     options: -t: pulse width, in s
     """
-    usage_str = 'Usage: python transient.py config -t 100e-3 --average-count 16'
+    usage_str = 'Usage: python transient.py config -t 100e-3 --average-count 16 -s 1e6'
     try:
-        opts, args = getopt.getopt(argv, "ht:a:", ['help', 'pulse-width=', 'average-count='])
+        opts, args = getopt.getopt(argv, "ht:a:s:", ['help', 'pulse-width=', 'average-count=', 'sampling-rate'])
     except getopt.GetoptError as err:
         # print help information and exit:
         print str(err)
         sys.exit(2)
 
     pulse_period = 100e-3   # default value for pulse width, in s
-    average_count = 16   # default value for number of averages
+    average_count = 0
+    srate = 0
     for opt, arg in opts:
         if opt in ("-h", "--help"):
             print usage_str
@@ -34,6 +37,8 @@ def config(argv):
             pulse_period = float(arg)
         elif opt in ('-a', "--average-count"):
             average_count = int(arg)
+        elif opt in ('-s', '--sampling-rate'):
+            srate = float(arg)
         else:
             raise ValueError("Unrecognized option %s" % arg)
 
@@ -54,7 +59,10 @@ def config(argv):
     a.set_yrange(source=4, yrange=1)
 
     # Configure averaging
-    a.config_average(count=average_count, status=1)
+    if average_count != 0:
+        a.config_average(count=average_count, status=1)
+    if srate != 0:
+        a.set_srate(srate)
     a.close()
 
 def data(argv):
@@ -102,7 +110,6 @@ def data(argv):
         plt.show()
 
 def utility(argv):
-
     usage_str = 'Usage: python transient.py utility -i 300K -o 300K_out'
     try:
         opts, args = getopt.getopt(argv, "hi:o:", ['help', 'infile=', 'outfile='])
@@ -123,6 +130,12 @@ def utility(argv):
 
     ut.osc_time_shift(infile=infile, outfile=outfile)
 
+def config1():
+    config(['-a', '16', '-t', '2', '-s', '100e3'])
+
+def config2():
+    config(['-a', '16', '-t', '50e-3', '-s', '5e6'])
+
 if __name__ == "__main__":
     usage_str = 'Usage: python transient.py config/data '
     if sys.argv[1] == 'config':
@@ -131,8 +144,10 @@ if __name__ == "__main__":
         data(sys.argv[2:])
     elif sys.argv[1] == 'utility':
         utility(sys.argv[2:])
+    elif sys.argv[1] == 'config_long_pulse':
+        config1()
+    elif sys.argv[1] == 'config_short_pulse':
+        config2()
     else:
         raise ValueError('Unrecognized argument')
-    
-    
     

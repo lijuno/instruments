@@ -796,6 +796,9 @@ class Agilent81004B(ib_dev):
             * 
         """
         pass
+
+    def set_srate(self, srate):
+        self.write(':ACQuire:SRATe %e' % srate)
     
     def record_data(self, source, mtime=5):
         """

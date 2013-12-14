@@ -101,12 +101,36 @@ def data(argv):
         plt.semilogx(y3)
         plt.show()
 
+def utility(argv):
+
+    usage_str = 'Usage: python transient.py utility -i 300K -o 300K_out'
+    try:
+        opts, args = getopt.getopt(argv, "hi:o:", ['help', 'infile=', 'outfile='])
+    except getopt.GetoptError as err:
+        # print help information and exit:
+        print str(err)
+        sys.exit(2)
+
+    outfile = ''
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            print usage_str
+            sys.exit()
+        elif opt in ('-i', '--infile'):
+            infile = str(arg)
+        elif opt in ('-o', '--outfile'):
+            outfile = str(arg)
+
+    ut.osc_time_shift(infile=infile, outfile=outfile)
+
 if __name__ == "__main__":
     usage_str = 'Usage: python transient.py config/data '
     if sys.argv[1] == 'config':
         config(sys.argv[2:])
     elif sys.argv[1] == 'data':
         data(sys.argv[2:])
+    elif sys.argv[1] == 'utility':
+        utility(sys.argv[2:])
     else:
         raise ValueError('Unrecognized argument')
     

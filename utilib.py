@@ -161,8 +161,43 @@ def plot_lfn_data(filename):
     Plot the LFN data given the data filename
     """
     d = np.loadtxt(filename)
-    plt.loglog(d[:,0], d[:,1])
+    plt.loglog(d[:, 0], d[:, 1])
     plt.xlabel('Frequency (Hz)')
     plt.ylabel('Noise')
     plt.title(filename)
     plt.savefig(filename+'.png')
+
+def osc_time_shift(infile, outfile=None):
+    """
+    A helper function to reorganize the data read from an oscilloscope
+    The result contains a time grid with t=0 as the first point
+    Input: Data file containing an N-by-2 matrix, with the first column as time axis
+    """
+
+    d = np.loadtxt(infile)
+    if not outfile:
+        outfile = infile+'.out'
+
+    t = d[:, 0]
+    y = d[:, 1]
+
+    dt = t[1] - t[0]
+    T = t[-1] - t[0] + dt
+    ind = np.where(t >= 0)   # is a tuple containing np.array type
+    ind = ind[0]
+
+    if ind[0] == 0:
+        t2 = t
+        y2 = y
+    else:
+        t_pt1 = t[ind]
+        t_pt2 = t[0:ind[0]] + T
+        y_pt1 = y[ind]
+        y_pt2 = y[0:ind[0]]
+        t2 = np.concatenate((t_pt1, t_pt2), axis=0)
+        y2 = np.concatenate((y_pt1, y_pt2), axis=0)
+
+    N = t2.__len__()
+    np.savetxt(outfile, np.concatenate((t2.reshape(N,1), y2.reshape(N,1)), axis=1), fmt='%e')
+    #plt.plot(t2, y2)
+    #plt.show()

@@ -128,9 +128,9 @@ if __name__ == "__main__":
         timeshift(sys.argv[2:])
     elif sys.argv[1] == 'rtd':
         print '%.1f K' % ut.rtd(float(sys.argv[2]))
-    elif sys.argv[1] == 'config_long_pulse':
+    elif sys.argv[1] == 'config_long_time':
         config1()
-    elif sys.argv[1] == 'config_short_pulse':
+    elif sys.argv[1] == 'config_short_time':
         config2()
     else:
         raise ValueError('Unrecognized argument')

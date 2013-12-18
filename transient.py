@@ -113,10 +113,10 @@ def timeshift(argv):
     ut.osc_time_shift(infile=infile, outfile=outfile)
 
 def config1():
-    config(['-a', '16', '-t', '2', '-s', '100e3'])
+    config(['-a', '10', '-t', '4', '-s', '50e3'])
 
 def config2():
-    config(['-a', '16', '-t', '50e-3', '-s', '5e6'])
+    config(['-a', '10', '-t', '100e-3', '-s', '1e6'])
 
 if __name__ == "__main__":
     usage_str = 'Usage: python transient.py config/data/timeshift/rtd'

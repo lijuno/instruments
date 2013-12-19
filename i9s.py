@@ -3,6 +3,7 @@ Instrument classes
 """
 
 from linuxgpib import ib_dev
+import serial
 import utilib as ut
 import time
 import numpy as np
@@ -859,3 +860,17 @@ class Agilent81004B(ib_dev):
             return data
         else:
             raise ValueError("Unrecognized mode")
+
+class SR570():
+    """
+    SR570 low noise preamplifier
+    RS232 communication interface, listen-only
+    """
+    def __init__(self, port='/dev/ttyUSB0'):
+        self.port = port   # device file in Linux
+        self.ser = serial.Serial(port=self.port, baudrate=9600, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_TWO, bytesize=serial.EIGHTBITS)
+
+    def write(self, cmd):
+        self.ser.open()
+        self.ser.write(cmd + '\r\n')
+        self.ser.close()

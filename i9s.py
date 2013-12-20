@@ -874,3 +874,6 @@ class SR570():
         self.ser.open()
         self.ser.write(cmd + '\r\n')
         self.ser.close()
+
+class LabJackU6Pro():
+    pass

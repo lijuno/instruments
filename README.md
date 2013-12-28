@@ -14,3 +14,8 @@ File list:
 * pyvisa.py: placeholder for base class based on PyVISA
 
 * utilib.py: independent useful functions
+
+* ni.py: instrument class for National Instruments devices; libraries 
+written for Windows
+
+* misc.py: other devices 

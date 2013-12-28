@@ -9,8 +9,9 @@ class USB6211():
     def __init__(self):
         pass
         
-    def get_voltage_ai(self, channel='Dev1/ai6', voltage_limit = 10, clock_freq = 1e4, sampling_pts = 1000):
-        sampling_pts = int(sampling_pts)
+    def get_voltage_ai(self, channel='Dev1/ai6', voltage_limit=10, clock_freq=1e4, sampling_pts=1000):
+        # The code below is adopted from http://pythonhosted.org/PyDAQmx/usage.html
+        sampling_pts = int(sampling_pts)   # force int type for sampling_pts, otherwise will be type error
         analog_input = daq.Task()
         read = daq.int32()
         data = numpy.zeros((sampling_pts,), dtype=numpy.float64)
@@ -28,4 +29,3 @@ class USB6211():
         
         print "Acquired %d points" % read.value
         return data
-        

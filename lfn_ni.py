@@ -4,6 +4,7 @@ This is done under Windows 7
 
 import ni
 import serial
+import numpy as np
 import matplotlib.pyplot as plt
 import utilib as ut
 import time 
@@ -27,11 +28,13 @@ def usb6211_get():
     plt.show()
     
 if __name__ == "__main__":
-    SR570_write('BSLV -100')   # set bias level
-    SR570_write('BSON 1')     # turn on bias
-    time.sleep(1)          # stabilize
-    usb6211_get()              # record data
-    SR570_write('BSON 0')   # turn off bias
+    bias_lst = np.linspace(100, 1000, 9)
+    for bias in bias_lst:
+        SR570_write('BSLV %d' % bias)   # set bias level
+        SR570_write('BSON 1')     # turn on bias
+        time.sleep(1)          # stabilize
+        usb6211_get()              # record data
+        SR570_write('BSON 0')   # turn off bias
     
 
 

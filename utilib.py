@@ -213,5 +213,11 @@ def rtd(resistance):
     temperature = np.interp(resistance, tb[:,0], tb[:,1])
     return temperature
 
-
-
+def down_sampling(data, down_sampling_factor=0.1):
+    """
+    Down-sampling the input data by a factor
+    """
+    num_pts = len(data)
+    x = np.linspace(1,num_pts, num_pts)
+    x2 = np.linspace(1, num_pts, np.floor(num_pts*down_sampling_factor))
+    return np.interp(x2, x, data)

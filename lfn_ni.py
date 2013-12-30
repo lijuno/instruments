@@ -41,7 +41,8 @@ def main(bias_list):
     sr570_write('FLTT 2', sr570_port)   # 6 dB bandpass filter
     sr570_write('LFRQ 11', sr570_port)   # 10kHz upper bound
     sr570_write('HFRQ 2', sr570_port)   # 0.3Hz lower bound
-    recording_time = 20    # unit: s
+    recording_time = 10    # unit: s
+
     for ii in range(len(bias_list)):
         sr570_write('BSLV %d' % bias_list[ii], sr570_port)   # set bias level
         sr570_write('BSON 1', sr570_port)     # turn on bias
@@ -69,7 +70,7 @@ if __name__ == "__main__":
         # Example: python lfn_ni.py main
         # To run the main routine
         # bias_lst = [-800]
-        bias_lst = [-800, -400]
+        bias_lst = [-500]
         main(bias_lst)
 
     elif sys.argv[1] == 'dc':

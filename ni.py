@@ -16,6 +16,13 @@ class USB6211():
         read = daq.int32()
         data = numpy.zeros((sampling_pts,), dtype=numpy.float64)
 
+        recording_time = float(sampling_pts) /clock_freq
+        if recording_time <= 5:
+            fill_mode = 5
+        else:
+            fill_mode = recording_time * 1.01
+        # The fill_mode here determines the max recording time USB6211 can go
+
         # DAQmx Configure Code
         #analog_input.CreateAIVoltageChan("Dev1/ai6","",DAQmx_Val_Cfg_Default,-voltage_range,voltage_range,DAQmx_Val_Volts,None)
         analog_input.CreateAIVoltageChan(channel,"",daq.DAQmx_Val_Diff,-voltage_limit,voltage_limit,daq.DAQmx_Val_Volts,None)
@@ -24,8 +31,9 @@ class USB6211():
         # DAQmx Start Code
         analog_input.StartTask()
         # DAQmx Read Code
-        analog_input.ReadAnalogF64(sampling_pts,10.0,daq.DAQmx_Val_GroupByChannel,data,sampling_pts, daq.byref(read),None)
-        # the 10.0 here is the "fillMode" -- need to find out what that means
+        analog_input.ReadAnalogF64(sampling_pts,fill_mode,daq.DAQmx_Val_GroupByChannel,data,sampling_pts, daq.byref(read),None)
         
         print "Acquired %d points" % read.value
         return data
+
+

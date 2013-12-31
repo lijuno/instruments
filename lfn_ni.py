@@ -13,16 +13,16 @@ import sys
 
 def usb6211_get(filename='', voltage_limit=0.2, duration=5):
     # duration: measurement duration, in s
-    channel = 'Dev1/ai6'
+    channel = 'Dev1/ai4'
     sampling_freq = 5e4
-    #sampling_pts = 250000  # too many points will make the program fail
     sampling_pts = sampling_freq * duration
     daq = ni.USB6211()
-    data = daq.get_voltage_ai(channel, voltage_limit, sampling_freq, sampling_pts)
+    data = daq.get_voltage_ai(channel=channel, voltage_limit=voltage_limit, sampling_freq=sampling_freq,
+                              sampling_pts=sampling_pts, input_mode='diff')
 
     if filename == '':
         filename = 'data'
-    if sampling_pts >=1e4:
+    if sampling_pts >= 1e4:
         # down sampling the data for plot
         down_sampling_factor = 1e4/sampling_pts
         data_plot = ut.down_sampling(data, down_sampling_factor)
@@ -35,6 +35,7 @@ def usb6211_get(filename='', voltage_limit=0.2, duration=5):
     plt.savefig('%s.png' % filename)
     plt.close()  # avoid "hold on" to the next plot
     ut.write_data_n1('%s.dat' % filename, data)
+
 
 def main(bias_list):
     # LFN measurement with bandpass filter
@@ -51,6 +52,7 @@ def main(bias_list):
         sr570_write('BSON 0', sr570_port)   # turn off bias
         time.sleep(1)
 
+
 def dc(bias_list):
     # DC coupled measurement
     sr570_write('FLTT 3', sr570_port)   # 6 dB lowpass filter
@@ -63,6 +65,7 @@ def dc(bias_list):
         usb6211_get('Vbias%d_DC' % bias_list[ii], voltage_limit=2, duration=recording_time)
         sr570_write('BSON 0', sr570_port)   # turn off bias
         time.sleep(1)
+
 
 if __name__ == "__main__":
     sr570_port = 'COM6'

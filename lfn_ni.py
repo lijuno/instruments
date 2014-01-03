@@ -13,7 +13,7 @@ import sys
 
 def usb6211_get(filename='', voltage_limit=0.2, duration=5):
     # duration: measurement duration, in s
-    channel = 'Dev1/ai4'
+    channel = 'Dev1/ai6'
     sampling_freq = 5e4
     sampling_pts = sampling_freq * duration
     daq = ni.USB6211()
@@ -37,17 +37,18 @@ def usb6211_get(filename='', voltage_limit=0.2, duration=5):
     ut.write_data_n1('%s.dat' % filename, data)
 
 
-def main(bias_list):
+def ac(bias_list):
     # LFN measurement with bandpass filter
     sr570_write('FLTT 2', sr570_port)   # 6 dB bandpass filter
     sr570_write('LFRQ 11', sr570_port)   # 10kHz upper bound
     sr570_write('HFRQ 2', sr570_port)   # 0.3Hz lower bound
     recording_time = 10    # unit: s
-
+    print "Start AC recording"
     for ii in range(len(bias_list)):
         sr570_write('BSLV %d' % bias_list[ii], sr570_port)   # set bias level
         sr570_write('BSON 1', sr570_port)     # turn on bias
         time.sleep(10)          # stabilize
+        print 'Start recording data'
         usb6211_get('Vbias%d' % bias_list[ii], voltage_limit=0.2, duration=recording_time)    # record data
         sr570_write('BSON 0', sr570_port)   # turn off bias
         time.sleep(1)
@@ -58,10 +59,11 @@ def dc(bias_list):
     sr570_write('FLTT 3', sr570_port)   # 6 dB lowpass filter
     sr570_write('LFRQ 11', sr570_port)
     recording_time = 2
+    print "Start DC recording"
     for ii in range(len(bias_list)):
         sr570_write('BSLV %d' % bias_list[ii], sr570_port)   # set bias level
         sr570_write('BSON 1', sr570_port)     # turn on bias
-        time.sleep(3)
+        time.sleep(5)
         usb6211_get('Vbias%d_DC' % bias_list[ii], voltage_limit=2, duration=recording_time)
         sr570_write('BSON 0', sr570_port)   # turn off bias
         time.sleep(1)
@@ -69,15 +71,20 @@ def dc(bias_list):
 
 if __name__ == "__main__":
     sr570_port = 'COM6'
+    bias_lst = [-1200, -800, 200, 400]
+    #bias_lst = [-1200]
+    #bias_lst = [-800, -400, 100, 200, 400]
+    #bias_lst = [-800]
     if sys.argv[1] == 'main':
+        ac(bias_lst)
+        time.sleep(1)
+        dc(bias_lst)
+    if sys.argv[1] == 'ac':
         # Example: python lfn_ni.py main
         # To run the main routine
-        # bias_lst = [-800]
-        bias_lst = [-500]
-        main(bias_lst)
+        ac(bias_lst)
 
     elif sys.argv[1] == 'dc':
-        bias_lst = [-800, -400, -200, 100, 200, 300]
         dc(bias_lst)
 
     elif sys.argv[1] == 'sr570':

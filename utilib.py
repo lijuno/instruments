@@ -4,6 +4,7 @@ Utility functions
 import smtplib
 import ConfigParser
 import sys
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -12,7 +13,7 @@ def twoscomplement(int_in, bitsize):
     Compute two's complement
     http://stackoverflow.com/a/1604701/1527875
     """
-    return int_in- (1<<bitsize)
+    return int_in - (1 << bitsize)
         
 def split_string(str_in, stepsize):
     """
@@ -213,6 +214,7 @@ def rtd(resistance):
     temperature = np.interp(resistance, tb[:,0], tb[:,1])
     return temperature
 
+
 def down_sampling(data, down_sampling_factor=0.1):
     """
     Down-sampling the input data by a factor
@@ -221,3 +223,94 @@ def down_sampling(data, down_sampling_factor=0.1):
     x = np.linspace(1,num_pts, num_pts)
     x2 = np.linspace(1, num_pts, np.floor(num_pts*down_sampling_factor))
     return np.interp(x2, x, data)
+
+
+def fft_ss(data, fs, **kwargs):
+    """
+    Compute the single-sided FFT spectrum
+    fft_ss(data, fs, **kwargs)
+    Input args:
+    * data: data to be FFT'ed
+    * fs: sampling rate
+    * **kwargs: output_type (either "amplitude" (default) or "rmspower")
+    Example:
+    * y, f = fft_ss(data, fs)
+    * y,f = fft_ss(data, fs, output_type='rmspower')
+    """
+    output_type = 'amplitude'    # default output type
+    for key,value in kwargs.iteritems():
+        if key.lower() == 'output_type':
+            output_type = value
+
+    Ns = len(data)
+    yf = np.fft.fft(data)
+    ff = float(fs)/Ns * np.arange(Ns)
+
+    # Compute the single-sided FFT amplitude spectrum
+    # Note that the first point of yf is DC value (f==0), and the rest point are symmetrical w.r.t. point Ns/2
+    y_ind_end = int(np.floor(Ns/2))
+    f = ff[0:(y_ind_end + 1)]
+    yfft = yf[0:(y_ind_end + 1)]
+
+    # Renormalization
+    # The first point is DC value; normalize it by Ns
+    # Other points are the addition of double-sided spectrum; normalize them by (Ns/2)
+    yfft[0] = yfft[0]/Ns
+    yfft[1:(y_ind_end + 1)] = yfft[1:(y_ind_end + 1)]/Ns*2.0
+
+    if output_type.lower() == 'amplitude':
+        y = np.abs(yfft)
+    elif output_type.lower() == 'rmspower':
+        # Remember DC power should not be divided by 2 like RMS AC power
+        y = np.abs(yfft)**2
+        y[1:(y_ind_end + 1)] = y[1:(y_ind_end + 1)]/2.0
+    return y, f
+
+
+def fft_pro(filename, fs, N_avg, ratio_overlap):
+    """
+    Get single-sided FFT power density spectrum from a time trace, with averaging
+    The idea is to reuse part of the previous unit trace for the next FFT
+    Input args:
+    * filename: input data filename
+    * fs: sampling rate
+    * N_avg: number of averaging traces
+    * ratio_overlap: ratio of reused points for each trace
+    Example:
+    * power_density, f = fft_pro('test.dat', 5e4, 1000, 0.99)
+    """
+
+    d = np.loadtxt(filename)
+    path_str, basename = os.path.split(filename)
+    name_str, ext_str = os.path.splitext(basename)
+
+    N_tot = len(d)
+    p = 1.0 - ratio_overlap
+    N_unit = int(np.floor(N_tot/(1 + p*(N_avg -1))))  # calculate the unit trace length
+    N_new  = int(np.floor(p*N_unit))
+
+    if N_new == 0:
+        raise ValueError('Overlapping ratio too large')
+
+    tmp = 0
+    for ii in range(N_avg):
+        #print ii
+        d_ind_start = N_new * ii
+        unit_trace = d[d_ind_start:(d_ind_start+N_unit)]
+        y, f = fft_ss(unit_trace, fs, output_type='rmspower')
+        tmp = tmp + y
+    power_fft = tmp/N_avg
+    df = f[1] - f[0]
+    power_density = power_fft/df
+
+    if 1:
+        plt.loglog(f, power_density)
+        plt.xlabel('Frequency (Hz)')
+        plt.ylabel('RMS power (V^2/Hz)')
+        plt.title(name_str)
+        plt.savefig(name_str+'.png')
+
+    write_data_n2('fft_'+name_str+'.dat', f, power_density, ftype='ee')
+    return power_density, f
+
+

@@ -1,5 +1,6 @@
 """
-Utility functions
+Some useful functions
+This module shouldn't contain anything equipments, like GPIB or serial functions
 """
 import smtplib
 import ConfigParser
@@ -267,7 +268,7 @@ def fft_ss(data, fs, **kwargs):
     return y, f
 
 
-def fft_pro(filename, fs, N_avg, ratio_overlap):
+def fft_pro(filename, fs, N_avg, ratio_overlap, **kwargs):
     """
     Get single-sided FFT power density spectrum from a time trace, with averaging
     The idea is to reuse part of the previous unit trace for the next FFT
@@ -279,6 +280,11 @@ def fft_pro(filename, fs, N_avg, ratio_overlap):
     Example:
     * power_density, f = fft_pro('test.dat', 5e4, 1000, 0.99)
     """
+    plot_flag = 1  # default for plotting
+    for key,value in kwargs.iteritems(kwargs):
+        if key == 'plot':
+            plot_flag = value
+            
 
     d = np.loadtxt(filename)
     path_str, basename = os.path.split(filename)
@@ -303,7 +309,7 @@ def fft_pro(filename, fs, N_avg, ratio_overlap):
     df = f[1] - f[0]
     power_density = power_fft/df
 
-    if 1:
+    if plot_flag:
         plt.loglog(f, power_density)
         plt.xlabel('Frequency (Hz)')
         plt.ylabel('RMS power (V^2/Hz)')

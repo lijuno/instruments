@@ -4,3 +4,4 @@
 *.dat
 data
 .idea
+scripts/*.m

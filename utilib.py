@@ -229,7 +229,8 @@ def down_sampling(data, down_sampling_factor=0.1):
 def fft_ss(data, fs, **kwargs):
     """
     Compute the single-sided FFT spectrum
-    fft_ss(data, fs, **kwargs)
+    yfft, f = fft_ss(data, fs, **kwargs)
+    yfft, f = fft_ss(data, fs, output_type='rmspower')
     Input args:
     * data: data to be FFT'ed
     * fs: sampling rate

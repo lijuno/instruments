@@ -63,7 +63,7 @@ def get_param_list(df_list):
     bias_list = []
     gain_list = []
     for s in df_list:
-        # s should something like 'Vbias600_gain1e-6.dat'
+        # s should something like 'Vbias-600_gain1e-6.dat'
         # Extract the number after 'Vbias'
         fn = re.sub('.dat', '', s)     # remove extension name '.dat'
         name_list = fn.split('_')     # separate information with separator '_'
@@ -91,7 +91,7 @@ def make_gain_str(gain):
     gstr = '%.1e' % gain
     gstr = re.sub('\+', '',  gstr)
     gstr = re.sub('\.', 'p', gstr)
-    gstr = re.sub('-', 'n', gstr)
+    gstr = re.sub('-', 'neg', gstr)
     return gstr
 
 def get_varlist(df_list, var_prefix):

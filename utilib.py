@@ -8,6 +8,7 @@ import sys
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import glob
 
 def twoscomplement(int_in, bitsize):
     """
@@ -321,3 +322,11 @@ def fft_pro(filename, fs, N_avg, ratio_overlap, **kwargs):
     return power_density, f
 
 
+def iv_merger(**kwargs):
+    """
+    Merge the IV characteristics data based on file names. The file name should be something like 'dev1_0.dat'
+    For example, for files 'dev1_0.dat', 'dev1_1.dat', 'dev1_2.dat', this function reads these data, merge them together,
+    sort according to voltage (the first column in the data), and return the result in a numpy array
+    """
+    for df in glob.glob('*.dat'):
+        pass

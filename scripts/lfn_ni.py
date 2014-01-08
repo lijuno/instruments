@@ -57,7 +57,7 @@ def sweep_ac(bias_list, param_suffix):
     for ii in range(len(bias_list)):
         sr570_write('BSLV %d' % bias_list[ii], sr570_port)   # set bias level
         time.sleep(10)          # stabilize
-        print 'Start recording AC-coupled data'
+        print 'Start recording AC-coupled data at SR570 bias level %d' % bias_list[ii]
         usb6211_get('Vbias%d_%s.dat' % (bias_list[ii], param_suffix),
                     voltage_limit=0.2, duration=recording_time)    # record data
     sr570_write('BSON 0', sr570_port)   # turn off bias
@@ -114,12 +114,6 @@ def lfn_config_parser(config_filename):
 
 if __name__ == "__main__":
     sr570_port = 'COM6'
-
-    #bias_lst = [-2000, -1800, -1600, -1400, -1200, -1000, -800, -600, -400, -200, 100]  # for SR570 gain == 1e7V/A
-    #bias_lst = [100, 150, 200, 300]   # for SR570 gain == 1e6V/A
-    #bias_lst = [300, 350, 400]  # for SR570 gain == 1e5 V/A
-    #bias_lst = [400, 450, 550]  # for SR570 gain == 1e4 V/A
-    #bias_lst = [600, 700, 800]   # for SR570 gain == 1e3 V/A
     if sys.argv[1] == 'main':
         # Example: python lfn_ni.py main lfn.cfg
         config_filename = sys.argv[2]   # config filename

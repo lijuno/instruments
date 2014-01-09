@@ -41,11 +41,18 @@ def usb6211_get(filename='', voltage_limit=0.2, duration=5):
     ut.write_data_n1(filename, data)
 
 
-def sweep_ac(bias_list, param_suffix):
+def sweep_ac(bias_list, param_suffix, **kwargs):
     # LFN measurement with bandpass filter
     # Input: bias_list: an int array containing bias levels of SR570
     #        param_suffix: a string representing other parameters as part of the file name
+    #        (optional) voltage_limit: the voltage range for the input signal
     # The saved data files should have names like "Vbias600_gain1e6.dat" where "gain_1e6" is given by param_suffix
+    voltage_limit = 0.2   # default voltage limit
+    for key, value in kwargs.iteritems():
+        if key == 'voltage_limit':
+            voltage_limit = value
+        else:
+            raise ValueError("Unrecognized input parameter '%s'" % key)
     sr570_write('FLTT 2', sr570_port)   # 6 dB bandpass filter
     sr570_write('LFRQ 11', sr570_port)   # 10kHz upper bound
     sr570_write('HFRQ 2', sr570_port)   # 0.3Hz lower bound
@@ -59,7 +66,7 @@ def sweep_ac(bias_list, param_suffix):
         time.sleep(10)          # stabilize
         print 'Start recording AC-coupled data at SR570 bias level %d' % bias_list[ii]
         usb6211_get('Vbias%d_%s.dat' % (bias_list[ii], param_suffix),
-                    voltage_limit=0.2, duration=recording_time)    # record data
+                    voltage_limit=voltage_limit, duration=recording_time)    # record data
     sr570_write('BSON 0', sr570_port)   # turn off bias
 
 
@@ -96,16 +103,20 @@ def lfn_config_parser(config_filename):
     sections = cfg.sections()
     cfg_list = []
     for sect in sections:
-        gain = float(cfg.get(sect, 'gain'))
+        post_amp_gain = float(cfg.get(sect, 'post_amp_gain'))
+        sr570_gain = float(cfg.get(sect, 'sr570_gain'))
         sr570_sens_cmd_arg = int(cfg.get(sect, 'sr570_sens_cmd_arg'))
+        voltage_limit = float(cfg.get(sect, 'voltage_limit'))
         bias_list_str = cfg.get(sect, 'bias_list').split(' ')
         bias_list = [int(s) for s in bias_list_str]
 
         # Generate dictionary
         cfg_dict = {}
-        cfg_dict.update({'gain': gain})
+        cfg_dict.update({'post_amp_gain': post_amp_gain})
+        cfg_dict.update({'sr570_gain': sr570_gain})
         cfg_dict.update({'sr570_sens_cmd_arg': sr570_sens_cmd_arg})
         cfg_dict.update({'bias_list': bias_list})
+        cfg_dict.update({'voltage_limit': voltage_limit})
 
         # Append to cfg_list
         cfg_list.append(cfg_dict)
@@ -115,17 +126,20 @@ def lfn_config_parser(config_filename):
 if __name__ == "__main__":
     sr570_port = 'COM6'
     if sys.argv[1] == 'main':
-        # Example: python lfn_ni.py main lfn.cfg
-        config_filename = sys.argv[2]   # config filename
-        config_list = lfn_config_parser(config_filename)
-        for cfg in config_list:
-            gain = cfg['gain']
-            sr570_sens_cmd_arg = cfg['sr570_sens_cmd_arg']
-            bias_list = cfg['bias_list']
+        # Example: python lfn_ni.py main lfn1.cfg lfn2.cfg ...
+        for config_filename in sys.argv[2:]:
+            config_list = lfn_config_parser(config_filename)
+            for cfg in config_list:
+                post_amp_gain = cfg['post_amp_gain']
+                sr570_gain = cfg['sr570_gain']
+                sr570_sens_cmd_arg = cfg['sr570_sens_cmd_arg']
+                bias_list = cfg['bias_list']
+                voltage_limit = cfg['voltage_limit']
+                gain = sr570_gain * post_amp_gain
 
-            gain_str = re.sub('\+', '', 'gain%.1e' % gain)  # remove '+' in the string
-            sr570_write('SENS %d' % sr570_sens_cmd_arg, sr570_port)  # set gain
-            sweep_ac(bias_list, gain_str)
+                gain_str = re.sub('\+', '', 'gain%.1e' % gain)  # remove '+' in the string
+                sr570_write('SENS %d' % sr570_sens_cmd_arg, sr570_port)  # set gain
+                sweep_ac(bias_list, gain_str, voltage_limit=voltage_limit)
 
     if sys.argv[1] == 'ac':
         # Example: python lfn_ni.py ac gain5.1e7

@@ -322,11 +322,22 @@ def fft_pro(filename, fs, N_avg, ratio_overlap, **kwargs):
     return power_density, f
 
 
-def iv_merger(**kwargs):
+def iv_merger(filename_root):
     """
     Merge the IV characteristics data based on file names. The file name should be something like 'dev1_0.dat'
     For example, for files 'dev1_0.dat', 'dev1_1.dat', 'dev1_2.dat', this function reads these data, merge them together,
-    sort according to voltage (the first column in the data), and return the result in a numpy array
+    sort according to voltage (the first column in the data), and return the result in two float arrays. Also, a file
+    called 'dev1_IV.dat' is also created under the same directory.
+    Input arg: filename_root; for the example above, it is 'dev1'
     """
-    for df in glob.glob('*.dat'):
-        pass
+    V = []
+    I = []
+    for df in glob.glob('%s*.dat' % filename_root):
+        data = np.loadtxt(df)
+        V.extend(data[:, 0].tolist())
+        I.extend(data[:, 1].tolist())    # convert the numpy array type to list type (to use str.extend() method)
+    V2 = np.array(V)
+    I2 = np.array(I)
+    ind = np.argsort(V2)    # return a sorted index (a numpy array); in other words, V2[ind] is the sorted array
+    write_data_n2('%s_IV.dat' % filename_root, V, I, ftype='fe')
+    return V2[ind].tolist(), I2[ind].tolist()   # eventually return a common list type

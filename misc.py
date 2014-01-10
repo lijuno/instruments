@@ -7,7 +7,7 @@ import serial
 
 def sr570_write(cmd, port='COM5'):
     """
-    Write to SR570 low noise preamplifier
+    A standalone function writing to SR570 low noise preamplifier via RS232 link
     RS232 communication interface, listen-only
     """
 
@@ -17,3 +17,5 @@ def sr570_write(cmd, port='COM5'):
     else:
         ser.write(cmd + '\r\n')
         ser.close()
+
+

@@ -141,18 +141,22 @@ if __name__ == "__main__":
                 sr570_write('SENS %d' % sr570_sens_cmd_arg, sr570_port)  # set gain
                 sweep_ac(bias_list, gain_str, voltage_limit=voltage_limit)
 
-    if sys.argv[1] == 'ac':
+    if sys.argv[1].lower() == 'ac':
         # Example: python lfn_ni.py ac gain5.1e7
         sweep_ac(bias_list, sys.argv[2])
 
-    elif sys.argv[1] == 'dc':
+    elif sys.argv[1].lower() == 'dc':
         dc(bias_list, sys.argv[2])
 
-    elif sys.argv[1] == 'sr570':
+    elif sys.argv[1].lower() == 'sr570':
         # Example: python lfn_ni.py sr570
         # To issue a command to SR570
         sr570_write(sys.argv[2], sr570_port)
-    elif sys.argv[1] == 'usb6211':
+    elif sys.argv[1].lower() == 'usb6211':
         # Example: python lfn_ni.py usb6211
         # To take a voltage analog input measurement with USB6211
         usb6211_get('data.dat')
+    elif sys.argv[1].lower() == "iv":
+        # Example: python lfn_ni.py iv dev1
+        # Merge IV characteristics
+        ut.iv_merger(sys.argv[2])

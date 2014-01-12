@@ -56,20 +56,20 @@ def sweep_ac(bias_list, param_suffix, **kwargs):
         else:
             raise ValueError("Unrecognized input parameter '%s'" % key)
     sr570.write('FLTT 2')   # 6 dB bandpass filter
-    misc.sr570_write('LFRQ 11', sr570_port)   # 10kHz upper bound
-    misc.sr570_write('HFRQ 2', sr570_port)   # 0.3Hz lower bound
+    sr570.write('LFRQ 11')   # 10kHz upper bound
+    sr570.write('HFRQ 2')   # 0.3Hz lower bound
     recording_time = 10    # unit: s
     print "Start AC measurement"
-    misc.sr570_write('BSLV %d' % bias_list[0], sr570_port)   # set initial bias level
-    misc.sr570_write('BSON 1', sr570_port)     # turn on bias
+    sr570.write('BSLV %d' % bias_list[0])   # set initial bias level
+    sr570.write('BSON 1')     # turn on bias
     time.sleep(2)
     for ii in range(len(bias_list)):
-        misc.sr570_write('BSLV %d' % bias_list[ii], sr570_port)   # set bias level
+        sr570.write('BSLV %d' % bias_list[ii])   # set bias level
         time.sleep(10)          # stabilize
         print 'Start recording AC-coupled data at SR570 bias level %d' % bias_list[ii]
         usb6211_get('Vbias%d_%s.dat' % (bias_list[ii], param_suffix),
                     voltage_limit=voltage_limit, duration=recording_time)    # record data
-    misc.sr570_write('BSON 0', sr570_port)   # turn off bias
+    sr570.write('BSON 0')   # turn off bias
 
 
 def dc(bias_list, param_suffix):
@@ -77,17 +77,17 @@ def dc(bias_list, param_suffix):
     # Input: bias_list: an int array containing bias levels of SR570
     #        param_suffix: a string representing other parameters as part of the file name
     # The saved data files should have names like "Vbias600_DC_gain1e6.dat" where "gain_1e6" is given by param_suffix
-    misc.sr570_write('FLTT 3', sr570_port)   # 6 dB lowpass filter
-    misc.sr570_write('LFRQ 11', sr570_port)  # 10kHz lower bound
+    sr570.write('FLTT 3')   # 6 dB lowpass filter
+    sr570.write('LFRQ 11')  # 10kHz lower bound
     recording_time = 2
     print "Start DC measurement"
     for ii in range(len(bias_list)):
-        misc.sr570_write('BSLV %d' % bias_list[ii], sr570_port)   # set bias level
-        misc.sr570_write('BSON 1', sr570_port)     # turn on bias
+        sr570.write('BSLV %d' % bias_list[ii])   # set bias level
+        sr570.write('BSON 1')     # turn on bias
         time.sleep(5)
         print "Start recording DC-coupled data"
         usb6211_get('Vbias%d_DC_%s.dat' % (bias_list[ii], param_suffix), voltage_limit=5, duration=recording_time)
-        misc.sr570_write('BSON 0', sr570_port)   # turn off bias
+        sr570.write('BSON 0')   # turn off bias
 
 
 def lfn_config_parser(config_filename):
@@ -142,7 +142,7 @@ if __name__ == "__main__":
                 gain = sr570_gain * post_amp_gain
 
                 gain_str = re.sub('\+', '', 'gain%.1e' % gain)  # remove '+' in the string
-                misc.sr570_write('SENS %d' % sr570_sens_cmd_arg, sr570_port)  # set gain
+                sr570.write('SENS %d' % sr570_sens_cmd_arg)  # set gain
                 sweep_ac(bias_list, gain_str, voltage_limit=voltage_limit)
 
     if sys.argv[1].lower() == 'ac':

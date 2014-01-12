@@ -107,7 +107,7 @@ def lfn_config_parser(config_filename):
     for sect in sections:
         post_amp_gain = float(cfg.get(sect, 'post_amp_gain'))
         sr570_gain = float(cfg.get(sect, 'sr570_gain'))
-        sr570_sens_cmd_arg = int(cfg.get(sect, 'sr570_sens_cmd_arg'))
+        # sr570_sens_cmd_arg = int(cfg.get(sect, 'sr570_sens_cmd_arg'))
         voltage_limit = float(cfg.get(sect, 'voltage_limit'))
         bias_list_str = cfg.get(sect, 'bias_list').split()
         bias_list = [int(s) for s in bias_list_str]
@@ -116,7 +116,7 @@ def lfn_config_parser(config_filename):
         cfg_dict = {}
         cfg_dict.update({'post_amp_gain': post_amp_gain})
         cfg_dict.update({'sr570_gain': sr570_gain})
-        cfg_dict.update({'sr570_sens_cmd_arg': sr570_sens_cmd_arg})
+        # cfg_dict.update({'sr570_sens_cmd_arg': sr570_sens_cmd_arg})
         cfg_dict.update({'bias_list': bias_list})
         cfg_dict.update({'voltage_limit': voltage_limit})
 

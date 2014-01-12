@@ -145,7 +145,7 @@ if __name__ == '__main__':
     output_filename = 'plot_data.m'
     f = open(output_filename, 'w')
     #f.write('gain = 1e-6;  \n\n')  # may need to change this to adjust amplifier gain
-    f.write('f0 = 10; \nf_fitting_range = [10, 1000]; \n')
+    f.write('f0 = 10; \nf_fitting_range = [10, 200]; \n')
     f.write("fs = 50e3; \nN_avg = 500; \nratio_overlap = 0.8;\n\n")
     f.write("IV=importdata('IV.txt');\n")
 

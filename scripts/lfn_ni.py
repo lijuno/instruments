@@ -160,7 +160,7 @@ if __name__ == "__main__":
     elif sys.argv[1].lower() == 'usb6211':
         # Example: python lfn_ni.py usb6211
         # To take a voltage analog input measurement with USB6211
-        usb6211_get('data.dat')
+        usb6211_get('data.dat', voltage_limit=0.2, duration=10)
     elif sys.argv[1].lower() == "iv":
         # Example: python lfn_ni.py iv dev1
         # Merge IV characteristics

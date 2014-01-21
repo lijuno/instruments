@@ -1,5 +1,5 @@
-README
-===========
+PyInstruments
+=============
 
 Python scripts for some of the instruments I use in my lab.
 

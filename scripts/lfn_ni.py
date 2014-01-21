@@ -126,7 +126,7 @@ def lfn_config_parser(config_filename):
 
 
 if __name__ == "__main__":
-    sr570_port = 'COM6'
+    sr570_port = 'COM3'
     sr570 = misc.SR570(sr570_port)
     if sys.argv[1] == 'main':
         # Example: python lfn_ni.py main lfn1.cfg lfn2.cfg ...

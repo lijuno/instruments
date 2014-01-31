@@ -2,8 +2,15 @@
 Instrument classes
 """
 
-from linuxgpib import ib_dev
-import serial
+import sys
+if 'linux' in sys.platform:
+    from linuxgpib import ib_dev
+elif 'win' in sys.platform:
+    from win_pyvisa import ib_dev
+else:
+    print "Unrecognized OS!"
+    sys.exit()
+
 import utilib as ut
 import time
 import numpy as np

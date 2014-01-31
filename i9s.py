@@ -93,18 +93,21 @@ class Keithley2400C(ib_dev):
     def off(self):
         self.write(':OUTPut:STATe OFF')
 
-    def sm_single(self, value=None, source='current', **kwargs):
+    def sm(self, source_list=None, source='current', **kwargs):
         """
         Single operation of source-and-measure
-        Example: sm_single(0, 'current', nplc=0.5, compliance=5, range=1)
-        meaning source 0A current and measure voltage with voltage compliance of 5V, voltage range of 1V and NPLC of 0.5
+        Input args:
+        input_list: a list of sourcing values
+        Example: sm_single([0, 1e-3], 'current', nplc=0.5, compliance=5, range=1)
+        meaning source 0 and 1mA current and measure voltage with voltage compliance of 5V, voltage range of 1V and NPLC of 0.5
         """
 
         # First set default values for parameters
         nplc = 0.2
         compliance = 1
-        range = 1
-        delay = 1   # the time between the sourcing and measurement
+        range = 0   # here 0 means auto range
+        delay = 1   # the time between turning on the source and measurement
+        fourwire = False
         for k, v in kwargs.iteritems():
             if k.lower() == 'nplc':
                 nplc = float(v)
@@ -114,39 +117,60 @@ class Keithley2400C(ib_dev):
                 range = float(v)
             elif k.lower() == 'delay':
                 delay = float(v)
+            elif k.lower() == 'fourwire':
+                fourwire = v  # a boolean
+
+        if not (type(source_list) == list):  # P.A.: not "type(source_list) == 'list'"; list is a type obj
+            # If source_list is not a list (most probably is an int or float
+            source_list = [source_list]
+        source_list_str = ','.join([str(_) for _ in source_list])
 
         if source.lower() == 'voltage':
             # Source voltage, measure current
+            self.write(':FORmat:ELEMents CURRent')
+            self.write(':SOURce:VOLTage:MODE LIST')
             self.write(':SOURce:FUNCtion: "VOLTage"')
-            self.write(':SOURce:VOLTage:MODE FIXed')
             self.write(':SENSe:FUNCtion "CURRent"')
             self.write(":SENSe:CURRent:PROTection %e" % compliance)
-            self.write(":SENSe:CURRent:RANGe %e" % range)
+            if range == 0:
+                self.write(':SENSe:CURRent:RANGe:AUTO')
+            else:
+                self.write(":SENSe:CURRent:RANGe %e" % range)
             self.write(':SENSe:CURRent:NPLCycles %f' % nplc)
-            self.write(':SOURce:VOLTage:LEVel %f' % value)
+            self.write(':SOURce:LIST:VOLTage %s' % source_list_str)
         elif source.lower() == 'current':
             # Source current, measure voltage
+            self.write(':FORmat:ELEMents VOLTage')
+            self.write(':SOURce:CURRent:MODE LIST')
             self.write(':SOURce:FUNCtion: "CURRent"')
-            self.write(':SOURce:CURRent:MODE FIXed')
             self.write(':SENSe:FUNCtion "VOLTage"')
             self.write(":SENSe:VOLTage:PROTection %e" % compliance)
-            self.write(":SENSe:VOLTage:RANGe %e" % range)
+            if range == 0:
+                self.write(':SENSe:VOLTage:RANGe:AUTO')
+            else:
+                self.write(":SENSe:VOLTage:RANGe %e" % range)
             self.write(':SENSe:VOLTage:NPLCycles %f' % nplc)
-            self.write(':SOURce:CURRent:LEVel %f' % value)
+            self.write(':SOURce:LIST:CURRent %s' % source_list_str)
         else:
             raise ValueError('Unrecognized source')
 
+        self.write(':TRIGger:COUNt %d' % len(source_list))
+        if fourwire:
+            # If doing four-wire measurement
+            self.write(':SYSTem:RSENse ON')
+
         self.write(':OUTPut ON')
         time.sleep(delay)
-        self.write('READ?')
+        self.write(':INITiate')
+        self.write(':FETCh?')  # need to tweak GPIB timeout to cater for different measurement time
         result = self.read()
         self.write(":OUTPut OFF")
-        return float(result)
+        return [float(d) for d in result.split(',')]
 
 
     def IV_sweep(self, vlist=None, fourwire=False):
         """
-        IV sweep: source V, measure I 
+        IV sweep: source V, measure I, a special case of sm(); this function may be removed in the future
         """
         vlist_str = ','.join([str(v) for v in vlist])
         print vlist_str

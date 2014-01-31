@@ -96,25 +96,52 @@ class Keithley2400C(ib_dev):
     def sm_single(self, value=None, source='current', **kwargs):
         """
         Single operation of source-and-measure
+        Example: sm_single(0, 'current', nplc=0.5, compliance=5, range=1)
+        meaning source 0A current and measure voltage with voltage compliance of 5V, voltage range of 1V and NPLC of 0.5
         """
 
         # First set default values for parameters
         nplc = 0.2
         compliance = 1
+        range = 1
+        delay = 1   # the time between the sourcing and measurement
         for k, v in kwargs.iteritems():
             if k.lower() == 'nplc':
                 nplc = float(v)
             elif k.lower() == 'compliance':
                 compliance = float(v)
+            elif k.lower() == 'range':
+                range = float(v)
+            elif k.lower() == 'delay':
+                delay = float(v)
 
         if source.lower() == 'voltage':
-            # Source voltage, measure voltage
-            self.write(':SOURce:VOLTage:MODE LIST')
+            # Source voltage, measure current
+            self.write(':SOURce:FUNCtion: "VOLTage"')
+            self.write(':SOURce:VOLTage:MODE FIXed')
+            self.write(':SENSe:FUNCtion "CURRent"')
+            self.write(":SENSe:CURRent:PROTection %e" % compliance)
+            self.write(":SENSe:CURRent:RANGe %e" % range)
+            self.write(':SENSe:CURRent:NPLCycles %f' % nplc)
+            self.write(':SOURce:VOLTage:LEVel %f' % value)
         elif source.lower() == 'current':
-            # Source current, measure current
-            pass
+            # Source current, measure voltage
+            self.write(':SOURce:FUNCtion: "CURRent"')
+            self.write(':SOURce:CURRent:MODE FIXed')
+            self.write(':SENSe:FUNCtion "VOLTage"')
+            self.write(":SENSe:VOLTage:PROTection %e" % compliance)
+            self.write(":SENSe:VOLTage:RANGe %e" % range)
+            self.write(':SENSe:VOLTage:NPLCycles %f' % nplc)
+            self.write(':SOURce:CURRent:LEVel %f' % value)
         else:
             raise ValueError('Unrecognized source')
+
+        self.write(':OUTPut ON')
+        time.sleep(delay)
+        self.write('READ?')
+        result = self.read()
+        self.write(":OUTPut OFF")
+        return float(result)
 
 
     def IV_sweep(self, vlist=None, fourwire=False):

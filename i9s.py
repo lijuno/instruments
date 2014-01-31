@@ -3,12 +3,16 @@ Instrument classes
 """
 
 import sys
+
 if 'linux' in sys.platform:
+    # Conditionally import GPIB library depending on Operating system (either Windows or Linux)
+    # In Windows, use PYVISA library
+    # In Linux, use linux-gpib library
     from linuxgpib import ib_dev
 elif 'win' in sys.platform:
     from win_pyvisa import ib_dev
 else:
-    print "Unrecognized OS!"
+    print "Unsupported OS!"
     sys.exit()
 
 import utilib as ut
@@ -89,7 +93,31 @@ class Keithley2400C(ib_dev):
     def off(self):
         self.write(':OUTPut:STATe OFF')
 
-    def IV_sweep(self, vlist=None, fourwire=True):
+    def sm_single(self, value=None, source='current', **kwargs):
+        """
+        Single operation of source-and-measure
+        """
+
+        # First set default values for parameters
+        nplc = 0.2
+        compliance = 1
+        for k, v in kwargs.iteritems():
+            if k.lower() == 'nplc':
+                nplc = float(v)
+            elif k.lower() == 'compliance':
+                compliance = float(v)
+
+        if source.lower() == 'voltage':
+            # Source voltage, measure voltage
+            self.write(':SOURce:VOLTage:MODE LIST')
+        elif source.lower() == 'current':
+            # Source current, measure current
+            pass
+        else:
+            raise ValueError('Unrecognized source')
+
+
+    def IV_sweep(self, vlist=None, fourwire=False):
         """
         IV sweep: source V, measure I 
         """

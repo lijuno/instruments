@@ -27,7 +27,7 @@ if __name__=='__main__':
             print str(err)
             sys.exit(2)
         
-        k = i9s.Keithley2400c(24)
+        k = i9s.KeithleySMU(24)
         k.initialize()
         vlist = np.linspace(0.4, 1, 41)
         ilist = k.IV_sweep(vlist, fourwire=False)

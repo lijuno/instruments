@@ -57,21 +57,21 @@ class HP3582A(ib_dev):
         return data_float  # return a float type array
 
 
-class Keithley2400C(ib_dev):
+class KeithleySMU(ib_dev):
     """
-    Keithley 2400C sourcemeter
+    Keithley sourcemeter unit
     """
 
-    def __init__(self, port):
-        print "Keithley 2400C sourcemeter"
+    def __init__(self, port=24, keithley_type='2400c'):
         ib_dev.__init__(self, port)
+        self.keithley_type = keithley_type
+        print "Keithley sourcemeter %s" % self.keithley_type
 
     def initialize(self):
         ib_dev.initialize(self)
         self.write('*RST')
         self.write(':SENSe:AVERage ON')
-        self.write(
-            ':SENSe:FUNCtion:CONCurrent 0')  # disable the ability of measuring more than one function simultaneously
+        self.write(':SENSe:FUNCtion:CONCurrent 0')  # disable the ability of measuring more than one function simultaneously
         self.write(':SOURce:DELay 0.5')
         self.write(':SOURce:CLEar:AUTO 0')
         self.write(':DISPLay:ENABle 1')
@@ -97,8 +97,13 @@ class Keithley2400C(ib_dev):
         """
         Single operation of source-and-measure
         Input args:
-        input_list: a list of sourcing values
-        Example: sm_single([0, 1e-3], 'current', nplc=0.5, compliance=5, range=1)
+        source_list: a list of sourcing values
+        source: 'current' or 'voltage'
+
+        Output:
+        always returns a list
+
+        Example: sm_single([0, 1e-3], 'current', nplc=0.5, compliance=5, range=1, delay=1)
         meaning source 0 and 1mA current and measure voltage with voltage compliance of 5V, voltage range of 1V and NPLC of 0.5
         """
 
@@ -128,27 +133,27 @@ class Keithley2400C(ib_dev):
         if source.lower() == 'voltage':
             # Source voltage, measure current
             self.write(':FORmat:ELEMents CURRent')
+            self.write(':SOURce:FUNCtion VOLTage')
             self.write(':SOURce:VOLTage:MODE LIST')
-            self.write(':SOURce:FUNCtion: "VOLTage"')
             self.write(':SENSe:FUNCtion "CURRent"')
-            self.write(":SENSe:CURRent:PROTection %e" % compliance)
+            self.write(":SENSe:CURRent:PROTection %.1e" % compliance)
             if range == 0:
-                self.write(':SENSe:CURRent:RANGe:AUTO')
+                self.write(':SENSe:CURRent:RANGe:AUTO ON')
             else:
-                self.write(":SENSe:CURRent:RANGe %e" % range)
+                self.write(":SENSe:CURRent:RANGe %.1e" % range)
             self.write(':SENSe:CURRent:NPLCycles %f' % nplc)
             self.write(':SOURce:LIST:VOLTage %s' % source_list_str)
         elif source.lower() == 'current':
             # Source current, measure voltage
             self.write(':FORmat:ELEMents VOLTage')
+            self.write(':SOURce:FUNCtion CURRent')
             self.write(':SOURce:CURRent:MODE LIST')
-            self.write(':SOURce:FUNCtion: "CURRent"')
             self.write(':SENSe:FUNCtion "VOLTage"')
-            self.write(":SENSe:VOLTage:PROTection %e" % compliance)
+            self.write(":SENSe:VOLTage:PROTection %.1e" % compliance)
             if range == 0:
-                self.write(':SENSe:VOLTage:RANGe:AUTO')
+                self.write(':SENSe:VOLTage:RANGe:AUTO ON')
             else:
-                self.write(":SENSe:VOLTage:RANGe %e" % range)
+                self.write(":SENSe:VOLTage:RANGe %.1e" % range)
             self.write(':SENSe:VOLTage:NPLCycles %f' % nplc)
             self.write(':SOURce:LIST:CURRent %s' % source_list_str)
         else:

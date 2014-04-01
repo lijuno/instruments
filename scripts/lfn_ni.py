@@ -17,7 +17,7 @@ import ConfigParser
 def usb6211_get(filename='', voltage_limit=0.2, duration=5):
     # duration: measurement duration, in s
     channel = 'Dev1/ai6'
-    sampling_freq = 5e4
+    sampling_freq = 1e3
     sampling_pts = sampling_freq * duration
     daq = ni.USB6211()
     data = daq.get_voltage_ai(channel=channel, voltage_limit=voltage_limit, sampling_freq=sampling_freq,
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     elif sys.argv[1].lower() == 'usb6211':
         # Example: python lfn_ni.py usb6211
         # To take a voltage analog input measurement with USB6211
-        usb6211_get('data.dat', voltage_limit=0.2, duration=10)
+        usb6211_get('data.dat', voltage_limit=1, duration=10)
     elif sys.argv[1].lower() == "iv":
         # Example: python lfn_ni.py iv dev1
         # Merge IV characteristics

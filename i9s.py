@@ -969,4 +969,23 @@ class Agilent81004B(ib_dev):
         else:
             raise ValueError("Unrecognized mode")
 
+class Agilent81110A(ib_dev):
+    def __init__(self, port=10):
+        """
+        The default GPIB address is 10, which can be changed via "Uilities" --> "GPIB Setup" on the screen
+        """
+        ib_dev.__init__(self, port)
 
+    def initialize(self):
+        ib_dev.initialize(self)
+        self.write(":ARM:SOURce IMMediate")  # internal trigger
+        self.write(":DIGital:SIGNal1:FORMat RZ")  # pattern type: return to zero
+
+    def set_output(self, ch, state):
+        self.write(":OUTPut%d %s" % (ch, state.upper()))
+
+
+    def set_double_pulse_delay(self, ch, delay):
+        # Delay unit: ns
+        self.write(":PULSe:DOUBle%d ON" % ch)
+        self.write(":PULSe:DOUBle%d:DELay %dNS" % (ch, delay))

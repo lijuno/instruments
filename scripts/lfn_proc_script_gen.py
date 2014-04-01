@@ -90,7 +90,11 @@ def bias_mapping(bias_level):
                  850: 0.840,
                  900: 0.889,
                  950: 0.939,
-                 1000: 0.988}
+                 1000: 0.988,
+                 2000: 1.975,
+                 3000: 2.957,
+                 4000: 3.936,
+                 5000: 4.91}
     if bias_level in bias_dict.keys():
         return bias_dict[bias_level]
     else:

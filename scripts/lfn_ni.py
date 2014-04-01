@@ -50,6 +50,8 @@ def sweep_ac(bias_list, param_suffix, **kwargs):
 
     # Use the global sr570 object defined in the outer space
     voltage_limit = 0.2   # default voltage limit
+    recording_time = 10   # unit: s
+
     for key, value in kwargs.iteritems():
         if key == 'voltage_limit':
             voltage_limit = value
@@ -58,7 +60,7 @@ def sweep_ac(bias_list, param_suffix, **kwargs):
     sr570.write('FLTT 2')   # 6 dB bandpass filter
     sr570.write('LFRQ 11')   # 10kHz upper bound
     sr570.write('HFRQ 2')   # 0.3Hz lower bound
-    recording_time = 10    # unit: s
+
     print "Start AC measurement"
     sr570.write('BSLV %d' % bias_list[0])   # set initial bias level
     sr570.write('BSON 1')     # turn on bias
@@ -126,7 +128,7 @@ def lfn_config_parser(config_filename):
 
 
 if __name__ == "__main__":
-    sr570_port = 'COM3'
+    sr570_port = 'COM7'
     sr570 = misc.SR570(sr570_port)
     if sys.argv[1] == 'main':
         # Example: python lfn_ni.py main lfn1.cfg lfn2.cfg ...

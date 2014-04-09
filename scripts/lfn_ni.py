@@ -17,7 +17,7 @@ import ConfigParser
 def usb6211_get(filename='', voltage_limit=0.2, duration=5):
     # duration: measurement duration, in s
     channel = 'Dev1/ai6'
-    sampling_freq = 1e3
+    sampling_freq = 50e3
     sampling_pts = sampling_freq * duration
     daq = ni.USB6211()
     data = daq.get_voltage_ai(channel=channel, voltage_limit=voltage_limit, sampling_freq=sampling_freq,
@@ -81,7 +81,7 @@ def dc(bias_list, param_suffix):
     # The saved data files should have names like "Vbias600_DC_gain1e6.dat" where "gain_1e6" is given by param_suffix
     sr570.write('FLTT 3')   # 6 dB lowpass filter
     sr570.write('LFRQ 11')  # 10kHz lower bound
-    recording_time = 2
+    recording_time = 10
     print "Start DC measurement"
     for ii in range(len(bias_list)):
         sr570.write('BSLV %d' % bias_list[ii])   # set bias level

@@ -56,7 +56,7 @@ def usb6211_get(filename='', **kwargs):
     ut.write_data_n1(filename, data)
 
 
-def sweep_ac_single(bias_list, param_suffix, **kwargs):
+def sweep_ac(bias_list, param_suffix, **kwargs):
     # LFN measurement with bandpass filter
     # Input: bias_list: an int array containing bias levels of SR570
     #        param_suffix: a string representing other parameters as part of the file name
@@ -96,7 +96,7 @@ def sweep_ac_single(bias_list, param_suffix, **kwargs):
 
     for ii in range(len(bias_list)):
         sr570.write('BSLV %d' % bias_list[ii])   # set bias level
-        time.sleep(10)          # stabilize
+        time.sleep(100)          # stabilize
         print 'Start recording AC-coupled data \nSR570 bias level = %d, fs=%.0f Hz' % (bias_list[ii], sampling_freq)
         usb6211_get('Vbias%d_%s.dat' % (bias_list[ii], param_suffix),
                     channel=channel,   # channel name is a global variable
@@ -233,11 +233,11 @@ if __name__ == "__main__":
                 gain = sr570_gain * post_amp_gain
                 gain_str = re.sub('\+', '', 'gain%.1e' % gain)  # remove '+' in the string
                 sr570.write('SENS %d' % sr570_sens_cmd_arg)  # set gain
-                sweep_ac_single(bias_list, gain_str,
+                sweep_ac(bias_list, gain_str,
                                 channel=usb6211_channel,
                                 voltage_limit=voltage_limit,
-                                recording_time=1,
-                                sampling_freq=10e3)
+                                recording_time=10,
+                                sampling_freq=50e3)
                 #sweep_ac2(bias_list, gain_str, channel=usb6211_channel, voltage_limit=voltage_limit)
 
     elif sys.argv[1].lower() == 'sr570':

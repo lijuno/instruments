@@ -47,6 +47,8 @@ def write_data_n2(filename, arr1, arr2, ftype='ef'):
             f.write('%e\t%e\n' % (arr1[ii], arr2[ii]))
         elif ftype.lower() == 'fe':
             f.write('%f\t%e\n' % (arr1[ii], arr2[ii]))
+        elif ftype.lower() == 'ff':
+            f.write('%f\t%f\n' % (arr1[ii], arr2[ii]))
     f.close()
    
 def write_data_n3(filename, arr1, arr2, arr3):

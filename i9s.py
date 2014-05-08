@@ -989,3 +989,92 @@ class Agilent81110A(ib_dev):
         # Delay unit: ns
         self.write(":PULSe:DOUBle%d ON" % ch)
         self.write(":PULSe:DOUBle%d:DELay %dNS" % (ch, delay))
+
+class RSFSU(ib_dev):
+    """
+    R&S FSU spectrum analyzer
+    """
+
+    def __init__(self, port=20):
+        ib_dev.__init__(self, port)
+
+    def initialize(self):
+        ib_dev.initialize(self)
+
+    def single_sweep(self, f_center, f_span, f_step):
+        self.write('FREQ:CENT %.2fGHz' % f_center)
+        self.write('FREQ:CENT:STEP %.2fMHz' % f_step)
+        self.write('FREQ:SPAN %.2fGHz' % f_span)
+        self.write('INIT:CONT OFF')
+        self.write('DISP:WIND:TRAC:MODE AVER')
+        self.write('SWE:COUN 5')
+        self.write('INIT;*WAI')
+        #return self.query('TRAC1 FPE')
+
+    def detect_peak(self):
+        self.write("CALC1:MARK1:MAX")
+        peak_x = self.query("CALC1:MARK1:X?")
+        peak_y = self.query("CALC1:MARK1:Y?")
+        return float(peak_x), float(peak_y)  # return (center frquency in Hz, spectrum power density)
+
+    def get_trace(self):
+        self.write("MMEM:STOR1:TRAC 1, 'TEST.DAT'")
+        d = self.query("MMEM:DATA? 'TEST.DAT'")  # raw trace data with headers
+        d2 = d.split('\r\n')
+        for ii in range(len(d2)):
+            if 'Trace 1' in d2[ii]:
+                ind_trace_head = ii + 6
+                break
+        d_out = d2[ind_trace_head:]
+        return d_out
+
+class LDT5910B(ib_dev):
+    """
+    ILX Lightwave temperature controller
+    """
+
+    def __init__(self, port=1):
+        ib_dev.__init__(self, port)
+
+    def initialize(self):
+        ib_dev.initialize(self)
+        #self.write('DISPLay:AUTO 0')
+        self.set_params()
+
+
+    def set_params(self):
+        self.write('*CLS')
+        #self.write("gain 5")
+        self.write('Const 1.125,2.347,0.855')
+        self.write('Limit:ITE 1')   # current limit
+        self.write('Limit:Thi 50')  # temperature high
+        self.write('Limit:Tlo 0')    # temperature low
+        self.write('DIS:SET')
+
+    def set_temperature(self, temperature=None):
+        # Set temperature, unit: Celcius
+        self.write('TEC:R %.2f' % temperature)
+        self.write('Output 1')
+
+class AgilentE4418B(ib_dev):
+    """
+    Agilent E4418B power meter
+    """
+
+    def __init__(self, port=17):
+        ib_dev.__init__(self, port)
+
+    def initialize(self):
+        ib_dev.initialize(self)
+
+    def zero(self):
+        self.write('CAL1:ZERO:AUTO ONCE')
+        self.write('CAL2:ZERO:AUTO ONCE')
+
+    def measure(self, frequency):
+        self.write('SENS1:CORR:CSET1:SEL "HP8486A"')
+        self.write('SENS1:CORR:CSET1:STAT ON')
+        self.write('SENS1:FREQ %fGHz' % np.round(frequency))
+        self.write('INIT1:IMM')
+        power = float(self.query('FETC1?'))
+        return power

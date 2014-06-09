@@ -285,7 +285,7 @@ def fft_pro(filename, fs, N_avg, ratio_overlap, **kwargs):
     * power_density, f = fft_pro('test.dat', 5e4, 1000, 0.99)
     """
     plot_flag = 1  # default for plotting
-    for key,value in kwargs.iteritems(kwargs):
+    for key,value in kwargs.iteritems():
         if key == 'plot':
             plot_flag = value
             

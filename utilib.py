@@ -284,10 +284,10 @@ def fft_pro(filename, fs, N_avg, ratio_overlap, **kwargs):
     Example:
     * power_density, f = fft_pro('test.dat', 5e4, 1000, 0.99)
     """
-    plot_flag = 1  # default for plotting
+    plot_flag = 1  # default not plotting
     for key,value in kwargs.iteritems():
         if key == 'plot':
-            plot_flag = value
+            plot_flag = int(value)
             
 
     d = np.loadtxt(filename)
@@ -314,12 +314,13 @@ def fft_pro(filename, fs, N_avg, ratio_overlap, **kwargs):
     power_density = power_fft/df
 
     if plot_flag:
+        plt.figure(119)
         plt.loglog(f, power_density)
         plt.xlabel('Frequency (Hz)')
         plt.ylabel('RMS power (V^2/Hz)')
         plt.title(name_str)
-        plt.savefig(name_str+'.png')
-
+        plt.savefig(name_str+'.png')     
+           
     write_data_n2('fft_'+name_str+'.dat', f, power_density, ftype='ee')
     return power_density, f
 

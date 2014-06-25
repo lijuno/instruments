@@ -9,6 +9,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import glob
+from scipy import stats
 
 def twoscomplement(int_in, bitsize):
     """
@@ -284,10 +285,10 @@ def fft_pro(filename, fs, N_avg, ratio_overlap, **kwargs):
     Example:
     * power_density, f = fft_pro('test.dat', 5e4, 1000, 0.99)
     """
-    plot_flag = 1  # default not plotting
+    plot = False  # default not plotting
     for key,value in kwargs.iteritems():
         if key == 'plot':
-            plot_flag = int(value)
+            plot = bool(value)
             
 
     d = np.loadtxt(filename)
@@ -313,7 +314,7 @@ def fft_pro(filename, fs, N_avg, ratio_overlap, **kwargs):
     df = f[1] - f[0]
     power_density = power_fft/df
 
-    if plot_flag:
+    if plot:
         plt.figure(119)
         plt.loglog(f, power_density)
         plt.xlabel('Frequency (Hz)')
@@ -344,3 +345,52 @@ def iv_merger(filename_root):
     ind = np.argsort(V2)    # return a sorted index (a numpy array); in other words, V2[ind] is the sorted array
     write_data_n2('%s_IV.dat' % filename_root, V, I, ftype='fe')
     return V2[ind].tolist(), I2[ind].tolist()   # eventually return a common list type
+
+def flicker_calc(f_in, P_in, f0, **kwargs):
+    """
+    Calculate the flicker noise slope, and power density at the designated frequency
+    Usage: 
+    beta, P0 = flicker_calc(f_in, P_in, f0, **kwargs)
+    Input args:
+    * f_in: frequency; an array
+    * P_in: y axis data; an array
+    * f0: calculate the fitted P in f0; float type
+    * (optional) plot: whether to plot the data; boolean type 
+    Output args: 
+    * beta: fitted flicker slope
+    * P0: fitted P in f0
+    """
+
+    fitting_range = [10, 100]   # default frequency range for the flicker slope fitting
+    plot = False   # not plotting by default
+
+    for key, value in kwargs.iteritems():
+        if key.lower() == 'fitting_range':
+            if value.__len__() != 2:
+                raise ValueError("The input argument f_bound should have length of 2!")
+            else: 
+                fitting_range = value
+        elif key.lower() == 'plot':
+            plot = value
+
+    f = np.array(f_in)
+    ind = np.where((f >= fitting_range[0]) & (f <= fitting_range[1]) & (f > 0))[0]  # np.where returns a tuple of np.array
+    
+    slope, intercept, r_value, p_value, std_err = stats.linregress(np.log10(f[ind]), np.log10(np.array(P_in)[ind]) )
+    beta = -slope
+    P0 = 10**intercept / f0**beta
+
+    if plot: 
+        plt.figure(100)
+        plt.loglog(f_in, P_in)
+        h_line = plt.loglog(f[ind], 10**intercept / f[ind]**beta)
+        plt.setp(h_line, 'linewidth', 3)
+        plt.xlabel('f')
+        plt.ylabel('P')
+        plt.title('beta=%.3f, P0=%.3e' % (beta, P0))
+        plt.legend(['Data', 'Fitted'])
+        plt.show()
+
+    return beta, P0
+
+

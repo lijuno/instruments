@@ -251,12 +251,12 @@ if __name__ == "__main__":
         usb6211_get('data.dat', channel='Dev1/ai6', voltage_limit=0.5, duration=10, sampling_freq=50e3)
     elif sys.argv[1].lower() == 'multiple':
         # Repeat the measurement for several times
-        N = 10
+        N = 4
         t_interval = 10   # measurement interval, unit: s
-        time.sleep(10)  # stabilize
-        for ii in range(N): 
-            usb6211_get('data%d.dat' % ii, channel='Dev1/ai6', voltage_limit=0.5, duration=1, sampling_freq=50e3)
-            time.sleep(t_interval)
+        time.sleep(5)  # stabilize
+        for ii in range(N):
+            time.sleep(t_interval) 
+            usb6211_get('data%d.dat' % ii, channel='Dev1/ai6', voltage_limit=0.5, duration=10, sampling_freq=50e3)            
     elif sys.argv[1].lower() == "iv":
         # Example: python lfn_ni.py iv dev1
         # Merge IV characteristics

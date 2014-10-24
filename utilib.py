@@ -393,4 +393,45 @@ def flicker_calc(f_in, P_in, f0, **kwargs):
 
     return beta, P0
 
+def zero_data(data_in, baseline_pts_ratio, option_str):
+    """
+    Zero the second column of an N-by-2 numpy.arragy matrix with a baseline calculated from a user 
+    defined region
+
+    Input args: 
+    data_in: data to be filtered. Should be a column vector or N-by-2 matrix
+    baseline_pts: the fraction of total data points the baseline is going to be calculated from 
+    option_str:  either 'first' or 'last'. When option_str is 'first', the baseline is going to be 
+    calculated from the first m*baseline_pts_ratio points. When option_str is 'last', the baseline 
+    is going to be calculated from the last m*baseline_pts_ratio points
+
+    Return an updated numpy.array matrix
+    """
+    
+    # First do error checking
+    (m, n) = data_in.shape
+    if n >=3:
+        raise RuntimeError('Input data should be a column vector or N-by-2 matrix')
+    elif n==2:
+        data = data_in[:,1]
+    elif n==1:
+        data = data_in
+
+    if option_str.lower() == 'first':
+        tmp = data[0:np.floor(m*baseline_pts_ratio)]
+    elif option_str.lower() == 'last':
+        tmp = data[np.floor(m*(1-baseline_pts_ratio)):]
+    else: 
+        raise RuntimeError("Invalid input option. Should be either 'first' or 'last'")
+
+    baseline = np.sum(tmp)/len(tmp)
+    if n == 1:
+        y = data - baseline
+    elif n == 2:
+        y = np.zeros([m,n])
+        y[:,0] = data_in[:,0]
+        y[:,1] = data - baseline
+
+    return y 
+
 

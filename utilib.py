@@ -409,7 +409,12 @@ def zero_data(data_in, baseline_pts_ratio, option_str):
     """
     
     # First do error checking
-    (m, n) = data_in.shape
+    if data_in.ndim ==1:
+        m = len(data_in)
+        n = 1
+    else:
+        (m, n) = data_in.shape
+
     if n >=3:
         raise RuntimeError('Input data should be a column vector or N-by-2 matrix')
     elif n==2:
